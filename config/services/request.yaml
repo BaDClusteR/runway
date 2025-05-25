@@ -1,0 +1,18 @@
+services:
+  Runway\Request\IRequest:
+    class: Runway\Request\Request
+
+  Runway\Request\IRequestRead:
+    class: Runway\Request\Request
+
+  Runway\Request\IResponse:
+    class: Runway\Request\Response
+
+  Runway\IRequestParameterValue:
+    class: Runway\RequestParameterValue
+
+  Runway\Request\Parameters\DataBuilder\IFileParametersDataBuilder:
+    class: Runway\Request\Parameters\DataBuilder\FileParametersDataBuilder
+
+  Runway\Request\Parameters\Provider\IRequestParametersProvider:
+    class: Runway\Request\Parameters\Provider\RequestParametersProvider
