@@ -17,18 +17,6 @@ const SRC_ROOT = RUNWAY_ROOT . "/src";
 
 const MODULE_ROOT = PROJECT_ROOT . "/modules";
 
-$vendorAutoloadFile = RUNWAY_ROOT . "/vendor/autoload.php";
-
-if (!file_exists($vendorAutoloadFile)) {
-    die("$vendorAutoloadFile is not found. Try calling 'composer install' from the project directory.");
-}
-
-if (!is_readable($vendorAutoloadFile)) {
-    die("$vendorAutoloadFile is not readable. Try checking read permissions.");
-}
-
-require_once $vendorAutoloadFile;
-
 spl_autoload_register(
     static function (string $class): void {
         if (str_starts_with($class, "\\")) {
