@@ -7,12 +7,4 @@
 #       path: /controller/path/with/{wildcards}/{something_more}
 #       controller: ControllerServiceOrFQN::controllerMethod
 
-services:
-  Runway\Controller\FrontPage\FrontPageController:
-    arguments:
-      version: '%runway_version'
-
-routes:
-  test_front_page:
-    path: /
-    controller: Runway\Controller\FrontPage\FrontPageController::showFrontPage
+routes: { }
