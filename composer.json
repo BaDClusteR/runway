@@ -1,4 +1,12 @@
 {
+    "name": "bad_cluster/runway",
+    "type": "library",
+    "description": "A Symfony-like platform for building websites and web apps.",
+    "keywords": ["runway"],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {"name": "BaD ClusteR", "email": "admin@badcluster.ru"}
+    ],
     "require": {
         "ramsey/uuid": "^4.7",
         "php": ">=8.4",
@@ -11,5 +19,14 @@
     },
     "require-dev": {
         "roave/security-advisories": "dev-latest"
+    },
+    "autoload": {
+        "psr-4": {"Runway\\" : "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Runway\\Tests\\": "tests/"}
+    },
+    "config": {
+        "sort-packages": true
     }
 }
