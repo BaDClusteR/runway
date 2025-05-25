@@ -1,0 +1,19 @@
+# Arguments:
+#   - Argument starting with '@' symbol is treated as a link to another service
+#   - Argument starting with '%' symbol is treated as a link to parameter
+#   - Argument starting with '#' symbol is treated as a link to ENV variable.
+
+services:
+  Runway\Event\IEventDispatcher:
+    class: Runway\Event\EventDispatcher
+
+  Runway\Dumper\IDumper:
+    class: Runway\Dumper\Dumper
+
+  Runway\FileSystem\IFileSystem:
+    class: Runway\FileSystem\FileSystem
+
+  Runway\Logger\ILogger:
+    class: Runway\Logger\Logger
+    arguments:
+      logSubDir: '%logger_subfolder'

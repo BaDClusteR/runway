@@ -1,0 +1,3 @@
+services:
+  Runway\Singleton\IConverter:
+    class: Runway\Singleton\Converter

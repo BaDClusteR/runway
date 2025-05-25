@@ -1,0 +1,19 @@
+# Some service classes load these services directly, calling (new Class()) instead of getting a service.
+# That happens when the config has not yet initialized.
+# Nonetheless, in the non-service code it is recommended to instantiate such classes as services.
+
+services:
+  Runway\Env\Provider\IEnvVariablesProvider:
+    class: Runway\Env\Provider\EnvVariablesProvider
+
+  Runway\Singleton\IKernel:
+    class: Runway\Singleton\Kernel
+
+  Runway\ISingleton:
+    class: Runway\Singleton
+
+  Runway\Service\Provider\IConfigProvider:
+    class: Runway\Service\Provider\ConfigProvider
+
+  Runway\Module\IModuleProvider:
+    class: Runway\Module\ModuleProvider
