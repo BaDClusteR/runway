@@ -1,0 +1,15 @@
+{
+    "require": {
+        "ramsey/uuid": "^4.7",
+        "php": ">=8.4",
+        "ext-openssl": "*",
+        "ext-fileinfo": "*",
+        "ext-yaml": "*",
+        "ext-simplexml": "*",
+        "ext-dom": "*",
+        "ext-zip": "*"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-latest"
+    }
+}
