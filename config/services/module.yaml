@@ -1,0 +1,6 @@
+services:
+  Runway\Module\Parser\IModuleConfigParser:
+    class: Runway\Module\Parser\ModuleConfigParser
+
+  Runway\Module\Provider\IModuleProvider:
+    class: Runway\Module\Provider\ModuleProvider

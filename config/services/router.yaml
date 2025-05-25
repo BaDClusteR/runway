@@ -1,0 +1,16 @@
+# Router, default controllers.
+
+services:
+  Runway\Router\IRouter:
+    class: Runway\Router\Router
+    arguments:
+      wildcardRegexp: '%route_wildcard_regexp'
+
+  Runway\Controller\IController404:
+    class: Runway\Controller\Controller404
+
+  Runway\Controller\IErrorController:
+    class: Runway\Controller\ErrorController
+
+  Runway\Controller\IExceptionController:
+    class: Runway\Controller\ExceptionController

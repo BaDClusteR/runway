@@ -1,0 +1,18 @@
+# Routes:
+#   - Route controller might be either service name or FQN
+#   - Route controller method should define all names variables that are defined in a path.
+#     All of them should be strings.
+#   - Route structure:
+#     route_system_name:
+#       path: /controller/path/with/{wildcards}/{something_more}
+#       controller: ControllerServiceOrFQN::controllerMethod
+
+services:
+  Runway\Controller\FrontPage\FrontPageController:
+    arguments:
+      version: '%runway_version'
+
+routes:
+  test_front_page:
+    path: /
+    controller: Runway\Controller\FrontPage\FrontPageController::showFrontPage
