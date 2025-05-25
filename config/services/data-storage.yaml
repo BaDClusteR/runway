@@ -1,0 +1,24 @@
+services:
+  Runway\DataStorage\IDataStorageDriver:
+    class: Runway\DataStorage\PDO
+
+  Runway\DataStorage\QueryBuilder\Converter\IComparisonOperatorConverter:
+    class: Runway\DataStorage\QueryBuilder\Converter\ComparisonOperatorConverter
+
+  Runway\DataStorage\QueryBuilder\Converter\IJoinTypeConverter:
+    class: Runway\DataStorage\QueryBuilder\Converter\JoinTypeConverter
+
+  Runway\DataStorage\QueryBuilder\Converter\IJoinConditionTypeConverter:
+    class: Runway\DataStorage\QueryBuilder\Converter\JoinConditionTypeConverter
+
+  Runway\DataStorage\QueryBuilder\IQueryBuilder:
+    class: Runway\DataStorage\QueryBuilder\QueryBuilder
+
+  Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder:
+    class: Runway\DataStorage\QueryBuilder\ExpressionBuilder\ExpressionBuilder
+
+  Runway\DataStorage\QueryBuilder\Converter\IQueryOperationConverter:
+    class: Runway\DataStorage\QueryBuilder\Converter\QueryOperationConverter
+
+  Runway\DataStorage\QueryBuilder\Converter\ITableNameEscaper:
+    class: Runway\DataStorage\QueryBuilder\Converter\TableNameEscaper
