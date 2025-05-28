@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Runway;
 
 use Runway\Trait\ConstructorParametersTrait;
-
+//
 class Singleton implements ISingleton {
     use ConstructorParametersTrait;
 
