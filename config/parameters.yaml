@@ -1,6 +1,6 @@
 parameters:
   route_wildcard_regexp: '[A-Za-z0-9\_\-]+'
 
-  runway_version: 1.0.0
+  runway_version: 1.0.1
 
   logger_subfolder: 'log'
