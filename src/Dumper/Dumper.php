@@ -2,9 +2,11 @@
 
 namespace Runway\Dumper;
 
+use Runway\Request\IRequest;
 use Runway\Request\IRequestRead;
 use Runway\Singleton;
 use JsonException;
+use Runway\Singleton\Container;
 
 class Dumper extends Singleton implements IDumper {
     public function __construct(
@@ -75,5 +77,29 @@ class Dumper extends Singleton implements IDumper {
         $this->isCLI ??= $this->request->isCLI();
 
         return $this->isCLI;
+    }
+}
+
+if (!function_exists("dump")) {
+    function dump(): void {
+        /** @var IRequest $request */
+        $request = Container::getInstance()->getService(IRequest::class);
+
+        /** @var IDumper $dumper */
+        $dumper = Container::getInstance()->getService(IDumper::class);
+
+        if (!$request->isCLI()) {
+            header('Content-Type: text/plain');
+        }
+
+        $dumper->export(...func_get_args());
+    }
+}
+
+if (!function_exists("dd")) {
+    function dd(): never {
+        dump(...func_get_args());
+
+        die();
     }
 }
