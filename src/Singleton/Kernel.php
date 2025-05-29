@@ -53,20 +53,9 @@ class Kernel extends Singleton implements IKernel {
             'kernel.init',
             null
         );
-
-        $this->postProcessInit();
     }
 
     public function isDebugMode(): bool {
         return $this->envVarsProvider->getEnvVariable('APP_DEBUG') === true;
-    }
-
-    /** @noinspection PhpUndefinedConstantInspection */
-    protected function postProcessInit(): void {
-        if (!defined("PROJECT_ROOT")) {
-            throw new RuntimeException("PROJECT_ROOT is not defined.");
-        }
-
-        define("MODULE_ROOT", PROJECT_ROOT . "/modules");
     }
 }
