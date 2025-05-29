@@ -20,4 +20,6 @@ interface IModuleProvider {
     public function isModuleEnabled(string $moduleName): bool;
 
     public function isModuleExists(string $moduleName): bool;
+
+    public function getModulesRootPath(): string;
 }
