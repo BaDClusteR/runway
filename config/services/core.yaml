@@ -22,3 +22,6 @@ services:
     events:
       - event: 'kernel.init'
         method: onInit
+
+  Runway\Service\Provider\IDirectoriesProvider:
+    class: Runway\Service\Provider\DirectoriesProvider

@@ -27,6 +27,7 @@ use Runway\Singleton;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionParameter;
+use Runway\Singleton\DTO\DependencyChainLinkDTO;
 
 class Container extends Singleton implements IContainer {
     protected ConfigDTO $config;
@@ -45,7 +46,7 @@ class Container extends Singleton implements IContainer {
     protected IEnvVariablesProvider $envVariablesProvider;
 
     /**
-     * @var \Runway\Singleton\DTO\DependencyChainLinkDTO[]
+     * @var DependencyChainLinkDTO[]
      */
     protected static array $dependencyChain = [];
 
@@ -203,7 +204,7 @@ class Container extends Singleton implements IContainer {
             $class = (string)($firstOuterTrace['class'] ?? '');
             $function = (string)($firstOuterTrace['function'] ?? '');
 
-            static::$dependencyChain[] = new \Runway\Singleton\DTO\DependencyChainLinkDTO(
+            static::$dependencyChain[] = new DependencyChainLinkDTO(
                 serviceName: $serviceName,
                 fileName: (string)($firstOuterTrace['file'] ?? ''),
                 line: (int)($firstOuterTrace['line'] ?? 0),
