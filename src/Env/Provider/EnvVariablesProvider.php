@@ -7,6 +7,7 @@ namespace Runway\Env\Provider;
 use Runway\Env\Exception\EnvParserException;
 use Runway\Env\Parser\EnvParser;
 use Runway\Env\Parser\IEnvParser;
+use Runway\Service\Provider\DirectoriesProvider;
 
 class EnvVariablesProvider implements IEnvVariablesProvider {
     private IEnvParser $envParser;
@@ -46,11 +47,6 @@ class EnvVariablesProvider implements IEnvVariablesProvider {
      * @return string[]
      */
     protected function getEnvFilePaths(): array {
-        /** @noinspection PhpUndefinedConstantInspection */
-        return [
-            RUNWAY_ROOT . '/.env',
-            PROJECT_ROOT . '/.env',
-            PROJECT_ROOT . '/.env.local',
-        ];
+        return DirectoriesProvider::getInstance()->getEnvFilePaths();
     }
 }

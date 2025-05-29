@@ -35,7 +35,11 @@ class ModuleProvider implements IModuleProvider {
     public function getAllModules(): array {
         $modules = [];
         $this->enabledModuleNames = $this->getEnabledModuleNamesFromEnvVar();
-        $modulesRoot = $this->getModulesRoot();
+        $modulesRoot = $this->getModulesRootPath();
+
+        if (!$modulesRoot) {
+            return [];
+        }
 
         foreach (scandir($modulesRoot) as $moduleDirRecord) {
             if (
@@ -77,7 +81,7 @@ class ModuleProvider implements IModuleProvider {
     }
 
     protected function getModuleDTOByFolderName(string $moduleFolder): ?ModuleDTO {
-        $moduleRoot = $this->getModulesRoot() . '/' . $moduleFolder;
+        $moduleRoot = $this->getModulesRootPath() . '/' . $moduleFolder;
 
         if ($moduleConfig = $this->configParser->parseModuleConfig($moduleRoot)) {
             return new ModuleDTO(
@@ -91,7 +95,9 @@ class ModuleProvider implements IModuleProvider {
         return null;
     }
 
-    protected function getModulesRoot(): string {
-        return MODULE_ROOT;
+    public function getModulesRootPath(): string {
+        return defined("MODULE_ROOT")
+            ? constant("MODULE_ROOT")
+            : "";
     }
 }

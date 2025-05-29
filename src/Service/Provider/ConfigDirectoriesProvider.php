@@ -8,16 +8,15 @@ use Runway\Env\Provider\EnvVariablesProvider;
 
 class ConfigDirectoriesProvider implements IConfigDirectoriesProvider {
     public function getDirectories(): array {
-        /** @noinspection PhpUndefinedConstantInspection */
         return [
-            RUNWAY_ROOT . '/config',
-            PROJECT_ROOT . '/config',
+            ...DirectoriesProvider::getInstance()->getConfigDirectories(),
             ...$this->getEnabledModuleDirectories()
         ];
     }
 
     protected function getEnabledModuleDirectories(): array {
         $dirs = [];
+        $moduleRoot = $this->getModuleRoot();
 
         $envVariablesProvider = new EnvVariablesProvider();
         $moduleNames = array_map(
@@ -29,7 +28,7 @@ class ConfigDirectoriesProvider implements IConfigDirectoriesProvider {
         );
 
         foreach ($moduleNames as $moduleName) {
-            $moduleDir = MODULE_ROOT . "/$moduleName/config";
+            $moduleDir = "$moduleRoot/$moduleName/config";
 
             if (file_exists($moduleDir) && is_dir($moduleDir)) {
                 $dirs[] = $moduleDir;
@@ -37,5 +36,9 @@ class ConfigDirectoriesProvider implements IConfigDirectoriesProvider {
         }
 
         return $dirs;
+    }
+
+    protected function getModuleRoot(): string {
+        return DirectoriesProvider::getInstance()->getModulesDirectory();
     }
 }
