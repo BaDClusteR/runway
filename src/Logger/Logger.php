@@ -98,8 +98,7 @@ class Logger implements ILogger {
     }
 
     protected function getLogDir(): string {
-        /** @noinspection PhpUndefinedConstantInspection */
-        return PROJECT_ROOT . "/" . $this->logSubDir . "/" . date("Y") . "/" . date("m");
+        return $this->getLogRootDir() . "/" . $this->logSubDir . "/" . date("Y") . "/" . date("m");
     }
 
     protected function getLogPath(): string {
@@ -178,5 +177,11 @@ class Logger implements ILogger {
 
     protected function getRequest(): IRequest {
         return Container::getInstance()->getService(IRequest::class);
+    }
+
+    protected function getLogRootDir(): string {
+        return defined("PROJECT_ROOT")
+            ? constant("PROJECT_ROOT")
+            : RUNWAY_ROOT;
     }
 }
