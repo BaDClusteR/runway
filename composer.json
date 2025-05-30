@@ -21,7 +21,8 @@
         "roave/security-advisories": "dev-latest"
     },
     "autoload": {
-        "psr-4": {"Runway\\" : "src/"}
+        "psr-4": {"Runway\\" : "src/"},
+        "files": ["bootstrap.php"]
     },
     "autoload-dev": {
         "psr-4": {"Runway\\Tests\\": "tests/"}
