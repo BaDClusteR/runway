@@ -27,16 +27,7 @@ class ConfigProvider extends Singleton implements IConfigProvider {
     protected IConfigConverter $configConverter;
 
     public function __construct() {
-        $this->initDirectories();
-
         $this->initHelpers();
-    }
-
-    protected function initDirectories(): void {
-        $directoriesProvider = DirectoriesProvider::getInstance();
-
-        $directoriesProvider->addConfigDirectory(RUNWAY_CONFIG_ROOT);
-        $directoriesProvider->addEnvFilePath(RUNWAY_ROOT . "/");
     }
 
     protected function initHelpers(): void {

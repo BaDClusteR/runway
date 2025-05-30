@@ -9,7 +9,7 @@ use Runway\Env\Provider\EnvVariablesProvider;
 class ConfigDirectoriesProvider implements IConfigDirectoriesProvider {
     public function getDirectories(): array {
         return [
-            ...DirectoriesProvider::getInstance()->getConfigDirectories(),
+            ...PathsProvider::getInstance()->getConfigDirectories(),
             ...$this->getEnabledModuleDirectories()
         ];
     }
@@ -39,6 +39,6 @@ class ConfigDirectoriesProvider implements IConfigDirectoriesProvider {
     }
 
     protected function getModuleRoot(): string {
-        return DirectoriesProvider::getInstance()->getModulesDirectory();
+        return PathsProvider::getInstance()->getModulesDirectory();
     }
 }

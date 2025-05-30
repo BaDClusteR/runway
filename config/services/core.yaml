@@ -18,10 +18,5 @@ services:
   Runway\Module\IModuleProvider:
     class: Runway\Module\ModuleProvider
 
-  Runway\EventListener\Kernel:
-    events:
-      - event: 'kernel.init'
-        method: onInit
-
   Runway\Service\Provider\IDirectoriesProvider:
     class: Runway\Service\Provider\DirectoriesProvider
