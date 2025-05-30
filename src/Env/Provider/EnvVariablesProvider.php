@@ -7,7 +7,7 @@ namespace Runway\Env\Provider;
 use Runway\Env\Exception\EnvParserException;
 use Runway\Env\Parser\EnvParser;
 use Runway\Env\Parser\IEnvParser;
-use Runway\Service\Provider\DirectoriesProvider;
+use Runway\Service\Provider\PathsProvider;
 
 class EnvVariablesProvider implements IEnvVariablesProvider {
     private IEnvParser $envParser;
@@ -47,6 +47,6 @@ class EnvVariablesProvider implements IEnvVariablesProvider {
      * @return string[]
      */
     protected function getEnvFilePaths(): array {
-        return DirectoriesProvider::getInstance()->getEnvFilePaths();
+        return PathsProvider::getInstance()->getEnvFilePaths();
     }
 }
