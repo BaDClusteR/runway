@@ -15,7 +15,7 @@ class Converter extends Singleton implements IConverter {
         protected ILogger $logger
     ) {}
 
-    protected const string DATE_TIME_FORMAT = "Y-m-d H:i:s";
+    public const string DATE_TIME_FORMAT = DATE_ATOM;
 
     public function capitalize(string $str): string {
         return strtoupper($str[0]) . substr($str, 1);

@@ -12,6 +12,7 @@ use Runway\Logger\Exception\LoggerException;
 use Runway\Request\IRequest;
 use Runway\Singleton\Container;
 use JsonException;
+use Runway\Singleton\IConverter;
 
 class Logger implements ILogger {
     protected LogLevelEnum $logLevel;
@@ -122,7 +123,7 @@ class Logger implements ILogger {
         $request = $this->getRequest();
 
         $result = [
-            'time'      => date('Y-m-d H:i:s', $now),
+            'time'      => $this->getConverter()->dateTimeToString($now),
             'ip'        => $request->getIpAddress(),
             'timestamp' => $now,
             'requestId' => $request->getRequestId(),
@@ -177,6 +178,10 @@ class Logger implements ILogger {
 
     protected function getRequest(): IRequest {
         return Container::getInstance()->getService(IRequest::class);
+    }
+
+    protected function getConverter(): IConverter {
+        return Container::getInstance()->getService(IConverter::class);
     }
 
     protected function getLogRootDir(): string {
