@@ -148,26 +148,29 @@ abstract class AEntity {
 
         // The model has an id? Then just update in the data storage.
         if ($this->getUniqueIdentifier()) {
-            $qb->update(static::$propHelper->getTableName())
-               ->where(
-                   $qb->expr()->eq(
-                       $this->getPrimaryProp()->getColumn(),
-                       $this->getUniqueIdentifier()
+            // Persistent model did not change? Do nothing.
+            if ($this->__isChanged) {
+                $qb->update(static::$propHelper->getTableName())
+                   ->where(
+                       $qb->expr()->eq(
+                           $this->getPrimaryProp()->getColumn(),
+                           $this->getUniqueIdentifier()
+                       )
                    )
-               );
+                   ->execute();
+            }
 
             // Otherwise, add it to the data storage and update the id prop.
         } else {
             $qb->insert()
-               ->into(static::$propHelper->getTableName());
+               ->into(static::$propHelper->getTableName())
+               ->execute();
 
             $this->setProp(
                 $this->getPrimaryProp()->getPropName(),
                 (int)$qb->getLastInsertId()
             );
         }
-
-        $qb->execute();
 
         return (string)$this->getUniqueIdentifier();
     }
