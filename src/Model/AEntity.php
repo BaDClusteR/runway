@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Runway\Model;
 
+use DateTime;
 use Runway\DataStorage\Exception\DBConnectionException;
 use Runway\DataStorage\Exception\DBException;
-use Runway\DataStorage\IDataStorageDriver;
 use Runway\DataStorage\QueryBuilder\Exception\QueryBuilderException;
 use Runway\DataStorage\QueryBuilder\IQueryBuilder;
 use Runway\Model\Converter\IDataStoragePropertiesConverter;
@@ -16,14 +16,12 @@ use Runway\Model\Exception\ModelException;
 use Runway\Model\Helper\IDataStoragePropertiesHelper;
 use Runway\Singleton\Container;
 use Runway\Singleton\IConverter;
-use DateTime;
 
 abstract class AEntity {
     private bool $__isChanged = false;
 
-    public static ?IDataStorageDriver $dataStorage = null;
-
-    protected static ?IDataStoragePropertiesHelper $propHelper = null;
+    /** @var IDataStoragePropertiesHelper[] */
+    protected static array $propHelpers = [];
 
     protected static ?IDataStoragePropertiesConverter $propConverter = null;
 
@@ -32,11 +30,12 @@ abstract class AEntity {
      * @throws DBConnectionException
      * @throws ModelException
      * @throws DBException
+     * @throws QueryBuilderException
      */
     public function __construct(?int $id = null) {
         $this->init();
 
-        if (!static::$propHelper->getPrimaryProp()) {
+        if (!static::getPropHelper()->getPrimaryProp()) {
             throw new ModelException(
                 sprintf(
                     "%s does not have a primary property.",
@@ -54,39 +53,30 @@ abstract class AEntity {
         }
     }
 
-    /**
-     * @throws DBConnectionException
-     */
     protected function init(): void {
         $container = Container::getInstance();
 
-        static::$dataStorage ??= $container->getDataStorageDriver();
         static::$propConverter ??= $container->getService(IDataStoragePropertiesConverter::class);
-
-        if (!static::$propHelper) {
-            static::$propHelper = $container->getService(IDataStoragePropertiesHelper::class);
-            static::$propHelper->setModelFQN(static::class);
-        }
     }
 
     /**
      * @throws DBException
      * @throws ModelException
+     * @throws QueryBuilderException
      */
     private function findRowById(int $id): ?array {
         $qb = static::getQueryBuilder();
 
-        $dsRow = static::$dataStorage->getFirstResult(
-            $qb->select()
-               ->from(static::$propHelper->getTableName())
-               ->where(
-                   $qb->expr()->eq(
-                       $this->getPrimaryProp()->getColumn(),
-                       ":id"
-                   )
-               )
-               ->setVariable("id", $id)
-        );
+        $dsRow = $qb->select()
+            ->from(static::getPropHelper()->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    $this->getPrimaryProp()->getColumn(),
+                    ":id"
+                )
+            )
+            ->setVariable("id", $id)
+            ->getFirstResult();
 
         return $dsRow ?: null;
     }
@@ -95,11 +85,11 @@ abstract class AEntity {
      * @throws ModelException
      */
     protected function getPrimaryProp(): DataStoragePropertyDTO {
-        return static::$propHelper->getPrimaryProp();
+        return static::getPropHelper()->getPrimaryProp();
     }
 
     protected function getTable(): string {
-        return static::$propHelper->getTableName();
+        return static::getPropHelper()->getTableName();
     }
 
     /**
@@ -150,7 +140,7 @@ abstract class AEntity {
         if ($this->getUniqueIdentifier()) {
             // Persistent model did not change? Do nothing.
             if ($this->__isChanged) {
-                $qb->update(static::$propHelper->getTableName())
+                $qb->update(static::getPropHelper()->getTableName())
                    ->where(
                        $qb->expr()->eq(
                            $this->getPrimaryProp()->getColumn(),
@@ -163,7 +153,7 @@ abstract class AEntity {
             // Otherwise, add it to the data storage and update the id prop.
         } else {
             $qb->insert()
-               ->into(static::$propHelper->getTableName())
+               ->into(static::getPropHelper()->getTableName())
                ->execute();
 
             $this->setProp(
@@ -181,7 +171,7 @@ abstract class AEntity {
      * @throws QueryBuilderException
      */
     private function getRefModelEntity(string $propName): ?AEntity {
-        if ($refProp = static::$propHelper->getRefByPropName($propName)) {
+        if ($refProp = static::getPropHelper()->getRefByPropName($propName)) {
             return call_user_func(
                 [$refProp->refModel, 'find'],
                 [$refProp->refProp => $this],
@@ -203,11 +193,11 @@ abstract class AEntity {
             return $this->$getter();
         }
 
-        if (static::$propHelper->getPropByName($propName)?->isDefaultGetter()) {
+        if (static::getPropHelper()->getPropByName($propName)?->isDefaultGetter()) {
             return $this->$propName ?? null;
         }
 
-        if (static::$propHelper->getRefByPropName($propName)?->isDefaultGetter) {
+        if (static::getPropHelper()->getRefByPropName($propName)?->isDefaultGetter) {
             $this->{$propName} ??= $this->getRefModelEntity($propName);
 
             return $this->{$propName};
@@ -225,8 +215,8 @@ abstract class AEntity {
      */
     protected function setProp(string $propName, mixed $value): static {
         if (
-            ($prop = static::$propHelper->getPropByName($propName))
-            && ($value !== $this->getProp($propName))
+            ($value !== $this->getProp($propName))
+            && ($prop = static::getPropHelper()->getPropByName($propName))
         ) {
             $method = "set" . $this->getConverter()->capitalize($propName);
 
@@ -247,7 +237,7 @@ abstract class AEntity {
      */
     protected function map(array $row): static {
         foreach ($row as $column => $value) {
-            if ($prop = static::$propHelper->getPropByColumnName($column)) {
+            if ($prop = static::getPropHelper()->getPropByColumnName($column)) {
                 $this->{$prop->getPropName()} = static::$propConverter->convert(
                     $prop->getDataStorageType(),
                     $prop->getPropType(),
@@ -343,7 +333,7 @@ abstract class AEntity {
         $result = [];
 
         foreach ($fields as $field) {
-            if (static::$propHelper->isPropExists($field)) {
+            if (static::getPropHelper()->isPropExists($field)) {
                 $result[$field] = $this->getProp($field);
             }
         }
@@ -360,7 +350,7 @@ abstract class AEntity {
      */
     public function set(array $props): void {
         foreach ($props as $propName => $value) {
-            if (static::$propHelper->isPropExists($propName)) {
+            if (static::getPropHelper()->isPropExists($propName)) {
                 $this->setProp($propName, $value);
             }
         }
@@ -409,7 +399,7 @@ abstract class AEntity {
      */
     public static function findByUniqueIdentifier(int|string $id, array|string|null $orderBy = null): ?AEntity {
         return static::findOne(
-            [(string)static::$propHelper->getPrimaryProp()?->getPropName() => $id],
+            [(string)static::getPropHelper()->getPrimaryProp()?->getPropName() => $id],
             $orderBy
         );
     }
@@ -434,7 +424,7 @@ abstract class AEntity {
             ->from($instance->getTable());
 
         foreach ($conditions as $propName => $value) {
-            if ($prop = static::$propHelper->getPropByName($propName)) {
+            if ($prop = static::getPropHelper()->getPropByName($propName)) {
                 $qb->andWhere(
                     $qb->expr()->eq(
                         $prop->getColumn(),
@@ -456,7 +446,7 @@ abstract class AEntity {
                 $orderBy = [$orderBy, "ASC"];
             }
 
-            if ($prop = static::$propHelper->getPropByName($orderBy[0])) {
+            if ($prop = static::getPropHelper()->getPropByName($orderBy[0])) {
                 $qb->addOrderBy(
                     $prop->getColumn(),
                     $orderBy[1]
@@ -501,7 +491,7 @@ abstract class AEntity {
      * @throws ModelException
      */
     protected function getProps(): array {
-        return static::$propHelper->getProps();
+        return static::getPropHelper()->getProps();
     }
 
     protected function getConverter(): IConverter {
@@ -510,5 +500,14 @@ abstract class AEntity {
 
     protected static function getQueryBuilder(): IQueryBuilder {
         return Container::getInstance()->getService(IQueryBuilder::class);
+    }
+
+    protected static function getPropHelper(): IDataStoragePropertiesHelper {
+        if (empty(static::$propHelpers[static::class])) {
+            static::$propHelpers[static::class] = Container::getInstance()->getService(IDataStoragePropertiesHelper::class);
+            static::$propHelpers[static::class]->setModelFQN(static::class);
+        }
+
+        return static::$propHelpers[static::class];
     }
 }
