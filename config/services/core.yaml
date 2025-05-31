@@ -18,5 +18,5 @@ services:
   Runway\Module\IModuleProvider:
     class: Runway\Module\ModuleProvider
 
-  Runway\Service\Provider\IDirectoriesProvider:
-    class: Runway\Service\Provider\DirectoriesProvider
+  Runway\Service\Provider\IPathsProvider:
+    class: Runway\Service\Provider\PathsProvider
