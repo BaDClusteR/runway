@@ -1,6 +1,6 @@
 # Routes:
 #   - Route controller might be either service name or FQN
-#   - Route controller method should define all names variables that are defined in a path.
+#   - Route controller method should define all named variables that are defined in a path.
 #     All of them should be strings.
 #   - Route structure:
 #     route_system_name:
