@@ -4,7 +4,7 @@ namespace Runway\Service\Provider;
 
 use Runway\Singleton;
 
-class PathsProvider extends Singleton implements IDirectoriesProvider
+class PathsProvider extends Singleton implements IPathsProvider
 {
     protected static array $configDirectories = [];
 

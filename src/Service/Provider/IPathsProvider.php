@@ -2,7 +2,7 @@
 
 namespace Runway\Service\Provider;
 
-interface IDirectoriesProvider
+interface IPathsProvider
 {
     public function addConfigDirectory(string $directoryPath): void;
 
