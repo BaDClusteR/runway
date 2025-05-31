@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Runway\DataStorage;
 
+use Exception;
+use PDOException;
+use PDOStatement;
 use Runway\DataStorage\DTO\DBConnectOptionsDTO;
 use Runway\DataStorage\Event\PDO\PDOConnectionErrorEnvelope;
 use Runway\DataStorage\Event\PDO\PDOErrorEnvelope;
@@ -15,9 +18,6 @@ use Runway\DataStorage\Exception\PDO\PDOConnectionException;
 use Runway\DataStorage\Exception\PDO\PDOStatementException;
 use Runway\DataStorage\Exception\PDO\PDOStatementPreparationException;
 use Runway\Singleton\Container;
-use Exception;
-use PDOException;
-use PDOStatement;
 
 class PDO implements IDataStorageDriver {
     private ?\PDO $connection;
@@ -82,7 +82,7 @@ class PDO implements IDataStorageDriver {
     /**
      * @throws DBException
      */
-    public function getFirstResult($query, mixed $vars = []): array {
+    public function getFirstResult(string $query, mixed $vars = []): array {
         $result = $this->prepareAndExecute($query, $vars)->fetch(\PDO::FETCH_ASSOC);
 
         return is_array($result)

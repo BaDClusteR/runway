@@ -23,7 +23,7 @@ interface IDataStorageDriver {
     /**
      * @throws DBException
      */
-    public function getFirstResult($query, mixed $vars = []): array;
+    public function getFirstResult(string $query, mixed $vars = []): array;
 
     /**
      * @throws DBException

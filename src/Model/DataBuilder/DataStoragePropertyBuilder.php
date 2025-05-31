@@ -85,16 +85,14 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
             $instance = $columnAttr->newInstance();
             $propName = $prop->getName();
 
-            $columnName =
-
-                $dto->setPropName($propName)
-                    ->setColumn(
-                        $this->getDataStorageColumnName($instance, $prop)
-                    )
-                    ->setDataStorageType(
-                        $instance->type
-                        ?? $this->getDataStorageTypeByPropType((string)$prop->getType()?->getName())
-                    );
+            $dto->setPropName($propName)
+                ->setColumn(
+                    $this->getDataStorageColumnName($instance, $prop)
+                )
+                ->setDataStorageType(
+                    $instance->type
+                    ?? $this->getDataStorageTypeByPropType((string)$prop->getType()?->getName())
+                );
         }
 
         return $dto;
@@ -120,7 +118,8 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
     }
 
     protected function isDataStorageEntityType(string $fqn): bool {
-        return ($parents = class_parents($fqn))
+        return class_exists($fqn)
+            && ($parents = class_parents($fqn))
             && in_array(AEntity::class, $parents, true);
     }
 
@@ -133,9 +132,8 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
 
     protected function getDataStorageTypeByPropType(string $propType): string {
         return match ($propType) {
-            'DateTime', 'bool' => "int",
             'array'            => "string",
-            default            => $propType
+            default            => $this->getDefaultDataStorageTypeByPropType($propType)
         };
     }
 
