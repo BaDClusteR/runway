@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Runway\Model;
 
+use DateMalformedStringException;
 use DateTime;
 use Runway\DataStorage\Exception\DBConnectionException;
 use Runway\DataStorage\Exception\DBException;
@@ -221,15 +222,38 @@ abstract class AEntity {
             $method = "set" . $this->getConverter()->capitalize($propName);
 
             if (method_exists($this, $method)) {
-                $this->$method($value);
+                $this->$method(
+                    $this->convertPropValue($prop, $value)
+                );
                 $this->__isChanged = true;
             } elseif ($prop->isDefaultSetter()) {
-                $this->$propName = $value;
+                $this->$propName = $this->convertPropValue($prop, $value);
                 $this->__isChanged = true;
             }
         }
 
         return $this;
+    }
+
+    protected function convertPropValue(DataStoragePropertyDTO $prop, mixed $propValue): mixed {
+        if (
+            (
+                is_string($propValue)
+                || is_numeric($propValue)
+            )
+            && $prop->getPropType() === DateTime::class
+        ) {
+            try {
+                return new DateTime(
+                    (is_numeric($propValue) ? "@" : "")
+                    . $propValue
+                );
+            } catch (DateMalformedStringException) {
+                return $propValue;
+            }
+        }
+
+        return $propValue;
     }
 
     /**
