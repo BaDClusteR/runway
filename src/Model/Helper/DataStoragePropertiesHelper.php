@@ -179,7 +179,7 @@ class DataStoragePropertiesHelper implements IDataStoragePropertiesHelper {
     public function getRefByPropName(string $propName): ?DataStorageReferenceDTO {
         return array_find(
             $this->getReferences(),
-            static fn(DataStorageReferenceDTO $ref): bool => $ref->refProp === $propName
+            static fn(DataStorageReferenceDTO $ref): bool => $ref->propName === $propName
         );
     }
 
