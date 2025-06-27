@@ -428,7 +428,7 @@ abstract class AEntity {
      * @throws ModelException
      * @throws DBException
      */
-    public static function findOne(array $conditions = [], array|string|null $orderBy = null): ?AEntity {
+    public static function findOne(array $conditions = [], array|string|null $orderBy = null): ?static {
         $qb = static::generateSearchQueryBuilder($conditions, $orderBy);
 
         if ($row = $qb->getFirstResult()) {
@@ -443,7 +443,7 @@ abstract class AEntity {
      * @throws ModelException
      * @throws QueryBuilderException
      */
-    public static function findByUniqueIdentifier(int|string $id, array|string|null $orderBy = null): ?AEntity {
+    public static function findByUniqueIdentifier(int|string $id, array|string|null $orderBy = null): ?static {
         return static::findOne(
             [(string)static::getPropHelper()->getPrimaryProp()?->getPropName() => $id],
             $orderBy
