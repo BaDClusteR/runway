@@ -171,7 +171,7 @@ abstract class AEntity {
      * @throws ModelException
      * @throws QueryBuilderException
      */
-    private function getRefModelEntity(string $propName): ?AEntity {
+    private function getRefModelEntity(string $propName): array {
         if ($refProp = static::getPropHelper()->getRefByPropName($propName)) {
             return call_user_func(
                 [$refProp->refModel, 'find'],
@@ -180,7 +180,7 @@ abstract class AEntity {
             );
         }
 
-        return null;
+        return [];
     }
 
     /**
