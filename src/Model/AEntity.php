@@ -12,6 +12,7 @@ use Runway\DataStorage\QueryBuilder\Exception\QueryBuilderException;
 use Runway\DataStorage\QueryBuilder\IQueryBuilder;
 use Runway\Model\Converter\IDataStoragePropertiesConverter;
 use Runway\Model\DTO\DataStoragePropertyDTO;
+use Runway\Model\DTO\DataStorageReferenceDTO;
 use Runway\Model\Exception\EntityNotFoundException;
 use Runway\Model\Exception\ModelException;
 use Runway\Model\Helper\IDataStoragePropertiesHelper;
@@ -114,6 +115,8 @@ abstract class AEntity {
      * @throws ModelException
      */
     public function persist(): string {
+        $this->persistReferences();
+
         $qb = static::getQueryBuilder();
 
         foreach ($this->getProps() as $prop) {
@@ -164,6 +167,25 @@ abstract class AEntity {
         }
 
         return (string)$this->getUniqueIdentifier();
+    }
+
+    /**
+     * @throws DBException
+     * @throws ModelException
+     * @throws QueryBuilderException
+     */
+    private function persistReferences(): void {
+        foreach ($this->getReferences() as $ref) {
+            $propValues = $this->getProp($ref->propName);
+
+            if ($propValues !== null) {
+
+                /** @var AEntity $propValue */
+                foreach ((array)$propValues as $propValue) {
+                    $propValue->persist();
+                }
+            }
+        }
     }
 
     /**
@@ -516,6 +538,15 @@ abstract class AEntity {
      */
     protected function getProps(): array {
         return static::getPropHelper()->getProps();
+    }
+
+    /**
+     * @return DataStorageReferenceDTO[]
+     *
+     * @throws ModelException
+     */
+    protected function getReferences(): array {
+        return static::getPropHelper()->getReferences();
     }
 
     protected function getConverter(): IConverter {
