@@ -440,8 +440,8 @@ class QueryBuilder implements IQueryBuilder {
 
     protected function getDeleteQueryParts(): array {
         return [
-            "DELETE FROM",
-            $this->tableNameEscaper->escapeTableName($this->tableName),
+            "DELETE ",
+            (string)$this->from,
             (string)$this->where
         ];
     }
