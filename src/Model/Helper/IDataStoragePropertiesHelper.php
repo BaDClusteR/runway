@@ -58,7 +58,7 @@ interface IDataStoragePropertiesHelper {
     public function getPrimaryProp(): ?DataStoragePropertyDTO;
 
     /**
-     * @return DataStoragePropertyDTO[]
+     * @return DataStorageReferenceDTO[]
      *
      * @throws ModelException
      */
