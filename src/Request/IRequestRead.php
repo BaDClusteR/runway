@@ -45,6 +45,11 @@ interface IRequestRead {
 
     public function getFile(string $fileIndex): ?FileDTO;
 
+    /**
+     * @return FileDTO[]
+     */
+    public function getFiles(): array;
+
     public function getRequestId(): string;
 
     public function process(): IResponseRead;
