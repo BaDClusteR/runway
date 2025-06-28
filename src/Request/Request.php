@@ -370,6 +370,10 @@ class Request extends Singleton implements IRequest {
         return $this->files[$fileIndex] ?? null;
     }
 
+    public function getFiles(): array {
+        return $this->files;
+    }
+
     public function isCLI(): bool {
         return PHP_SAPI === 'cli';
     }
