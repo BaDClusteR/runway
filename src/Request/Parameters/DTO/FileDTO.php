@@ -37,4 +37,8 @@ readonly class FileDTO {
     public function getFullPath(): string {
         return $this->fullPath;
     }
+
+    public function getContent(): string {
+        return (string)file_get_contents($this->tmpName);
+    }
 }
