@@ -160,19 +160,19 @@ class FileSystem implements IFileSystem {
         $dstFilename = pathinfo($dstBasename, PATHINFO_FILENAME);
         $suffix = 0;
 
-        $getDstFilePath = static fn(): string => (
-            $dstDir . DIRECTORY_SEPARATOR . $dstFilename
-            . ($suffix ? "-$suffix" : "")
-            . ($dstFileExtension ? "." . $dstFileExtension : "")
-        );
-
         while (
-            file_exists($getDstFilePath())
+            file_exists(
+                $newDstPath = (
+                    $dstDir . DIRECTORY_SEPARATOR . $dstFilename
+                    . ($suffix ? "-$suffix" : "")
+                    . ($dstFileExtension ? "." . $dstFileExtension : "")
+                )
+            )
             && $suffix < static::MAX_FILE_SUFFIX
         ) {
             $suffix++;
         }
 
-        return $getDstFilePath();
+        return $newDstPath;
     }
 }
