@@ -55,7 +55,7 @@ interface IExpressionBuilder {
 
     public function in(
         string|ExpressionFunc|ExpressionMath $leftPart,
-        string|ExpressionFunc|ExpressionMath $rightPart
+        string|ExpressionFunc|ExpressionMath|array $rightPart
     ): ExpressionComparison;
 
     public function isNull(

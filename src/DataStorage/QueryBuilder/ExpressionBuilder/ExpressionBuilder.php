@@ -87,11 +87,16 @@ class ExpressionBuilder implements IExpressionBuilder {
         );
     }
 
-    public function in(ExpressionFunc|ExpressionMath|string $leftPart, ExpressionFunc|ExpressionMath|string $rightPart): ExpressionComparison {
+    public function in(
+        ExpressionFunc|ExpressionMath|string $leftPart,
+        ExpressionFunc|ExpressionMath|string|array $rightPart
+    ): ExpressionComparison {
         return new ExpressionComparison(
             $leftPart,
             ExpressionComparisonOperatorsEnum::IN,
-            $rightPart
+            is_array($rightPart)
+                ? implode(", ", $rightPart)
+                : $rightPart
         );
     }
 
