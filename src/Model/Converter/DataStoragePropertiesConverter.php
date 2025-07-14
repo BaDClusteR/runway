@@ -79,6 +79,10 @@ class DataStoragePropertiesConverter implements IDataStoragePropertiesConverter 
     }
 
     protected function isModelFQN(string $fqn): bool {
+        if ($this->isSimpleType($fqn)) {
+            return false;
+        }
+
         try {
             return new ReflectionClass($fqn)->isSubclassOf(AEntity::class);
         } catch (ReflectionException $e) {
@@ -88,5 +92,9 @@ class DataStoragePropertiesConverter implements IDataStoragePropertiesConverter 
         }
 
         return false;
+    }
+
+    protected function isSimpleType(string $type): bool {
+        return !str_contains($type, "\\");
     }
 }
