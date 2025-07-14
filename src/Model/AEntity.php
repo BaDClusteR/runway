@@ -471,19 +471,34 @@ abstract class AEntity {
 
         foreach ($conditions as $propName => $value) {
             if ($prop = static::getPropHelper()->getPropByName($propName)) {
-                $qb->andWhere(
-                    $qb->expr()->eq(
-                        $prop->getColumn(),
-                        ":{$propName}"
-                    )
-                )->setVariable(
-                    $propName,
-                    static::$propConverter->convert(
-                        $prop->getPropType(),
-                        $prop->getDataStorageType(),
-                        $value
-                    )
-                );
+                if ($value === null) {
+                    $qb->andWhere(
+                        $qb->expr()->isNull(
+                            $prop->getColumn()
+                        )
+                    );
+                } elseif (is_array($value)) {
+                    $qb->andWhere(
+                        $qb->expr()->in(
+                            $prop->getColumn(),
+                            $value
+                        )
+                    );
+                } else {
+                    $qb->andWhere(
+                        $qb->expr()->eq(
+                            $prop->getColumn(),
+                            ":{$propName}"
+                        )
+                    )->setVariable(
+                        $propName,
+                        static::$propConverter->convert(
+                            $prop->getPropType(),
+                            $prop->getDataStorageType(),
+                            $value
+                        )
+                    );
+                }
             }
         }
 
