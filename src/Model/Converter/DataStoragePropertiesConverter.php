@@ -6,6 +6,7 @@ namespace Runway\Model\Converter;
 
 use Runway\DataStorage\Exception\DBException;
 use Runway\DataStorage\QueryBuilder\Exception\QueryBuilderException;
+use Runway\Exception\RuntimeException;
 use Runway\Logger\ILogger;
 use Runway\Model\AEntity;
 use Runway\Model\Exception\ModelException;
@@ -43,8 +44,22 @@ class DataStoragePropertiesConverter implements IDataStoragePropertiesConverter 
 
             // get model entity id
         } elseif ($toType === "int" && $value !== null && $this->isModelFQN($fromType)) {
-            /** @var AEntity $result */
-            $result = is_numeric($value) ? $result : $result->getUniqueIdentifier();
+            if ($value instanceof AEntity) {
+                if (!$value->isPersistent()) {
+                    $value->persist();
+
+                    // Try persisting, expect unique identifier to be non-empty after this.
+                    // If it's still empty, it means entity is already in the process of persisting.
+                    // So, we are in the infinite loop / circular persist dependency / something like that.
+                    if (!$value->isPersistent()) {
+                        throw new RuntimeException("Infinite loop while trying to persist entities.");
+                    }
+                }
+
+                return (int)$value->getUniqueIdentifier();
+            }
+
+            return (int)$value;
 
             // when converting from string to array, string is expected to be JSON-encoded array
         } elseif ($fromType === "string" && $toType === "array") {

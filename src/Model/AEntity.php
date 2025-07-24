@@ -22,6 +22,8 @@ use Runway\Singleton\IConverter;
 abstract class AEntity {
     private bool $__isChanged = false;
 
+    private bool $__isPersisting = false;
+
     /** @var IDataStoragePropertiesHelper[] */
     protected static array $propHelpers = [];
 
@@ -108,13 +110,15 @@ abstract class AEntity {
     /**
      * Saves the model to the data storage. Persistent entity will be updated, non-persistent - inserted.
      *
-     * @return string The entity unique identifier. In most cases, it's a numeric string.
-     *
      * @throws QueryBuilderException
      * @throws DBException
      * @throws ModelException
      */
-    public function persist(): string {
+    public function persist(): void {
+        if ($this->__isPersisting) {
+            return;
+        }
+
         $qb = static::getQueryBuilder();
 
         foreach ($this->getProps() as $prop) {
@@ -139,7 +143,7 @@ abstract class AEntity {
         }
 
         // The model has an id? Then just update in the data storage.
-        if ($this->getUniqueIdentifier()) {
+        if ($this->isPersistent()) {
             // Persistent model did not change? Do nothing.
             if ($this->__isChanged) {
                 $qb->update(static::getPropHelper()->getTableName())
@@ -165,8 +169,15 @@ abstract class AEntity {
         }
 
         $this->persistReferences();
+    }
 
-        return (string)$this->getUniqueIdentifier();
+    /**
+     * @throws ModelException
+     * @throws DBException
+     * @throws QueryBuilderException
+     */
+    public function isPersistent(): bool {
+        return !empty($this->getUniqueIdentifier());
     }
 
     /**
