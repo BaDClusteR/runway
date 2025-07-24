@@ -115,8 +115,6 @@ abstract class AEntity {
      * @throws ModelException
      */
     public function persist(): string {
-        $this->persistReferences();
-
         $qb = static::getQueryBuilder();
 
         foreach ($this->getProps() as $prop) {
@@ -165,6 +163,8 @@ abstract class AEntity {
                 (int)$qb->getLastInsertId()
             );
         }
+
+        $this->persistReferences();
 
         return (string)$this->getUniqueIdentifier();
     }
