@@ -18,6 +18,7 @@ use Runway\DataStorage\QueryBuilder\Expression\ExpressionFrom;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionFunc;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionGroupBy;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionHaving;
+use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionJoin;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionMath;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionOrderBy;
@@ -251,13 +252,13 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function where(ExpressionComparison|AExpressionBoolean|string $condition): static {
+    public function where(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
         $this->where = new ExpressionWhere($condition);
 
         return $this;
     }
 
-    public function andWhere(ExpressionComparison|AExpressionBoolean|string $condition): static {
+    public function andWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
         $this->where = $this->where
             ? $this->where->addAnd($condition)
             : new ExpressionWhere($condition);
@@ -265,7 +266,7 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function orWhere(ExpressionComparison|AExpressionBoolean|string $condition): static {
+    public function orWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
         $this->where = $this->where
             ? $this->where->addOr($condition)
             : new ExpressionWhere($condition);
@@ -273,13 +274,13 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function having(ExpressionComparison|AExpressionBoolean|string $condition): static {
+    public function having(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
         $this->having = new ExpressionHaving($condition);
 
         return $this;
     }
 
-    public function andHaving(ExpressionComparison|AExpressionBoolean|string $condition): static {
+    public function andHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
         $this->having = $this->having
             ? $this->having->addAnd($condition)
             : new ExpressionHaving($condition);
@@ -287,7 +288,7 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function orHaving(ExpressionComparison|AExpressionBoolean|string $condition): static {
+    public function orHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
         $this->having = $this->having
             ? $this->having->addOr($condition)
             : new ExpressionHaving($condition);

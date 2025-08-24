@@ -9,6 +9,7 @@ use Runway\DataStorage\QueryBuilder\Exception\QueryBuilderException;
 use Runway\DataStorage\QueryBuilder\Expression\AExpressionBoolean;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionComparison;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionFunc;
+use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionMath;
 use Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder;
 
@@ -65,19 +66,19 @@ interface IQueryBuilder {
 
     public function clearJoin(): static;
 
-    public function where(ExpressionComparison|AExpressionBoolean|string $condition): static;
+    public function where(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
 
-    public function andWhere(ExpressionComparison|AExpressionBoolean|string $condition): static;
+    public function andWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
 
-    public function orWhere(ExpressionComparison|AExpressionBoolean|string $condition): static;
+    public function orWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
 
     public function clearWhere(): static;
 
-    public function having(ExpressionComparison|AExpressionBoolean|string $condition): static;
+    public function having(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
 
-    public function andHaving(ExpressionComparison|AExpressionBoolean|string $condition): static;
+    public function andHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
 
-    public function orHaving(ExpressionComparison|AExpressionBoolean|string $condition): static;
+    public function orHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
 
     public function clearHaving(): static;
 

@@ -12,7 +12,7 @@ class AExpressionCondition extends AExpressionComposite {
     protected string $separator = "";
 
     public function __construct(
-        ExpressionComparison|AExpressionBoolean|string $where
+        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $where
     ) {
         $this->addPart([
             null,
@@ -21,7 +21,7 @@ class AExpressionCondition extends AExpressionComposite {
     }
 
     public function addAnd(
-        ExpressionComparison|AExpressionBoolean|string $part
+        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $part
     ): static {
         return $this->addPart([
             ExpressionWherePartTypeEnum::AND,
@@ -30,7 +30,7 @@ class AExpressionCondition extends AExpressionComposite {
     }
 
     public function addOr(
-        ExpressionComparison|AExpressionBoolean|string $part
+        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $part
     ): static {
         return $this->addPart([
             ExpressionWherePartTypeEnum::OR,
