@@ -18,7 +18,7 @@ class PDOStatementException extends PDOException {
         int                           $code = 0,
         ?Throwable                    $previous = null
     ) {
-        parent::__construct($query, $connection, $message, $code, $previous);
+        parent::__construct($this->sqlStateCode, $query, $connection, $message, $code, $previous);
     }
 
     public function getStatement(): PDOStatement {
