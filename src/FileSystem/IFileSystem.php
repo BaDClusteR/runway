@@ -3,6 +3,7 @@
 namespace Runway\FileSystem;
 
 use Runway\FileSystem\Exception\CannotCreateDirectoryException;
+use Runway\FileSystem\Exception\CannotDeleteFileException;
 use Runway\FileSystem\Exception\FileSystemException;
 
 interface IFileSystem {
@@ -31,5 +32,8 @@ interface IFileSystem {
         bool   $isChangeFilenameIfExists = true
     ): string;
 
+    /**
+     * @throws CannotDeleteFileException
+     */
     public function remove(string $fullPath): void;
 }
