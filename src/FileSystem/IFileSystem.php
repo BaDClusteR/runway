@@ -30,4 +30,6 @@ interface IFileSystem {
         bool   $isOverwrite = false,
         bool   $isChangeFilenameIfExists = true
     ): string;
+
+    public function remove(string $fullPath): void;
 }
