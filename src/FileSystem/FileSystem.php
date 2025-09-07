@@ -6,6 +6,7 @@ namespace Runway\FileSystem;
 
 use Runway\FileSystem\Exception\CannotCopyException;
 use Runway\FileSystem\Exception\CannotCreateDirectoryException;
+use Runway\FileSystem\Exception\CannotDeleteFileException;
 use Runway\FileSystem\Exception\CannotFindFileException;
 use Runway\FileSystem\Exception\CannotOpenFileException;
 use Runway\FileSystem\Exception\CannotReadFileException;
@@ -174,5 +175,15 @@ class FileSystem implements IFileSystem {
         }
 
         return $newDstPath;
+    }
+
+    /**
+     * @throws CannotDeleteFileException
+     */
+    public function remove(string $fullPath): void
+    {
+        if (file_exists($fullPath) && !unlink($fullPath)) {
+            throw new CannotDeleteFileException($fullPath);
+        }
     }
 }
