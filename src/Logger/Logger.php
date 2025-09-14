@@ -74,7 +74,7 @@ class Logger implements ILogger {
                     ],
                     $this->getRecordExtraInfo()
                 ),
-                JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE
+                JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
             );
         } catch (JsonException $e) {
             throw new LoggerException(
