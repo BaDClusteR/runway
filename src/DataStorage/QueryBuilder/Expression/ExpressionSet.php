@@ -18,7 +18,7 @@ class ExpressionSet extends AExpressionComposite {
      * @param array{0: string, 1:string|int|ExpressionMath|ExpressionFunc} $part
      */
     public function convertPart($part): string {
-        return "{$part[0]} = {$part[1]}";
+        return "`{$part[0]}` = {$part[1]}";
     }
 
     public function add(

@@ -435,6 +435,19 @@ abstract class AEntity {
     }
 
     /**
+     * @throws ModelException
+     * @throws DBException
+     * @throws QueryBuilderException
+     */
+    public static function iterate(array $conditions = [], array|string|null $orderBy = null): iterable {
+        $qb = static::generateSearchQueryBuilder($conditions, $orderBy);
+
+        foreach ($qb->iterate() as $row) {
+            yield $row;
+        }
+    }
+
+    /**
      * @throws QueryBuilderException
      * @throws ModelException
      * @throws DBException
@@ -579,7 +592,7 @@ abstract class AEntity {
         return Container::getInstance()->getService(IConverter::class);
     }
 
-    protected static function getQueryBuilder(): IQueryBuilder {
+    public static function getQueryBuilder(): IQueryBuilder {
         return Container::getInstance()->getService(IQueryBuilder::class);
     }
 
