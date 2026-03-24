@@ -64,7 +64,7 @@ class DataStoragePropertiesConverter implements IDataStoragePropertiesConverter 
             // when converting from string to array, string is expected to be JSON-encoded array
         } elseif ($fromType === "string" && $toType === "array") {
             try {
-                $result = json_decode($result, true, 512, JSON_THROW_ON_ERROR);
+                $result = json_decode((string)$result, true, 512, JSON_THROW_ON_ERROR);
             } catch (JsonException $e) {
                 $this->logger->warning(
                     __CLASS__ . ": error while converting from JSON string to array. Reason: {$e->getMessage()}"

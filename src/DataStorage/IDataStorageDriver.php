@@ -2,6 +2,7 @@
 
 namespace Runway\DataStorage;
 
+use Runway\DataStorage\DTO\DataStorageConnectionOptionsDTO;
 use Runway\DataStorage\Exception\DBException;
 
 interface IDataStorageDriver {
@@ -36,4 +37,6 @@ interface IDataStorageDriver {
     public function getFirstScalarResult(string $query, mixed $vars = []): mixed;
 
     public function getLastInsertId(): string;
+
+    public function getConnectOptions(): DataStorageConnectionOptionsDTO;
 }

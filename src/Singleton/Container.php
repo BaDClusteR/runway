@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Runway\Singleton;
 
-use Runway\DataStorage\DTO\DBConnectOptionsDTO;
+use Runway\DataStorage\DTO\DataStorageConnectionOptionsDTO;
 use Runway\DataStorage\Exception\DBConnectionException;
 use Runway\DataStorage\IDataStorageDriver;
 use Runway\DataStorage\QueryBuilder\IQueryBuilder;
@@ -94,8 +94,8 @@ class Container extends Singleton implements IContainer {
         return $this->dataStorageDriver;
     }
 
-    protected function getDataStorageDriverConnectOptions(): DBConnectOptionsDTO {
-        return new DBConnectOptionsDTO(
+    protected function getDataStorageDriverConnectOptions(): DataStorageConnectionOptionsDTO {
+        return new DataStorageConnectionOptionsDTO(
             user: $this->envVariablesProvider->getEnvVariable("DB_USER"),
             password: $this->envVariablesProvider->getEnvVariable("DB_PASSWORD"),
             dbName: $this->envVariablesProvider->getEnvVariable("DB_NAME"),

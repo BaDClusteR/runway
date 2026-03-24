@@ -7,7 +7,7 @@ namespace Runway\DataStorage;
 use Exception;
 use PDOException;
 use PDOStatement;
-use Runway\DataStorage\DTO\DBConnectOptionsDTO;
+use Runway\DataStorage\DTO\DataStorageConnectionOptionsDTO;
 use Runway\DataStorage\Event\PDO\PDOConnectionErrorEnvelope;
 use Runway\DataStorage\Event\PDO\PDOErrorEnvelope;
 use Runway\DataStorage\Event\PDO\PDONotConnectedEnvelope;
@@ -17,9 +17,16 @@ use Runway\DataStorage\Exception\DBNotConnectedException;
 use Runway\DataStorage\Exception\PDO\PDOConnectionException;
 use Runway\DataStorage\Exception\PDO\PDOStatementException;
 use Runway\DataStorage\Exception\PDO\PDOStatementPreparationException;
+use Runway\Env\Provider\IEnvVariablesProvider;
+use Runway\Event\IEventDispatcher;
 use Runway\Singleton\Container;
 
 class PDO implements IDataStorageDriver {
+    public function __construct(
+        protected IEnvVariablesProvider $envVariablesProvider,
+        protected IEventDispatcher $eventDispatcher,
+    ) {}
+
     private ?\PDO $connection;
 
     private string $tableNamePrefix = "";
@@ -27,21 +34,15 @@ class PDO implements IDataStorageDriver {
     /**
      * @throws PDOConnectionException
      */
-    public function connect(DBConnectOptionsDTO $options): ?\PDO {
-        $dsn = "mysql:host={$options->getHost()};dbname={$options->getDbName()}";
-
-        if ($encoding = $options->getEncoding()) {
-            $dsn .= ";charset={$encoding}";
-        }
-
+    public function connect(DataStorageConnectionOptionsDTO $options): ?\PDO {
         try {
             $this->connection = new \PDO(
-                $dsn,
-                $options->getUser(),
-                $options->getPassword()
+                $options->dsn,
+                $options->user,
+                $options->password
             );
 
-            $this->tableNamePrefix = $options->getTableNamePrefix();
+            $this->tableNamePrefix = $options->tableNamePrefix;
         } catch (Exception $e) {
             $this->handleConnectionException($e, $dsn);
         }
@@ -272,5 +273,14 @@ class PDO implements IDataStorageDriver {
         );
 
         throw new DBNotConnectedException();
+    }
+
+    public function getConnectOptions(): DataStorageConnectionOptionsDTO {
+        return new DataStorageConnectionOptionsDTO(
+            dsn: $this->envVariablesProvider->getEnvVariable('DSN'),
+            user: $this->envVariablesProvider->getEnvVariable('DB_USER'),
+            password: $this->envVariablesProvider->getEnvVariable('DB_PASSWORD'),
+            tableNamePrefix: $this->envVariablesProvider->getEnvVariable('DB_PREFIX')
+        );
     }
 }

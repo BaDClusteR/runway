@@ -25,6 +25,8 @@ use Runway\DataStorage\QueryBuilder\Expression\ExpressionOrderBy;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionSet;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionWhere;
 use Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder;
+use Runway\Model\AEntity;
+use Runway\Model\Helper\IDataStoragePropertiesHelper;
 use Runway\Singleton\Container;
 
 class QueryBuilder implements IQueryBuilder {
@@ -59,6 +61,11 @@ class QueryBuilder implements IQueryBuilder {
     protected array $values = [];
 
     /**
+     * @var string[]
+     */
+    protected array $columns = [];
+
+    /**
      * @var array{0?: int, 1?: int}
      */
     protected array $limit = [];
@@ -70,7 +77,8 @@ class QueryBuilder implements IQueryBuilder {
      */
     public function __construct(
         protected ITableNameEscaper  $tableNameEscaper,
-        protected IExpressionBuilder $expressionBuilder
+        protected IExpressionBuilder $expressionBuilder,
+        protected IDataStoragePropertiesHelper $propHelper
     ) {
         $this->dataStorageDriver = Container::getInstance()->getDataStorageDriver();
     }
@@ -110,8 +118,15 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function into(string $tableName): static {
+    /**
+     * @param string[]|null $columns
+     */
+    public function into(string $tableName, ?array $columns = null): static {
         $this->tableName = $tableName;
+
+        if ($columns !== null) {
+            $this->setColumns($columns);
+        }
 
         return $this;
     }
@@ -129,7 +144,14 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
+    /**
+     * @param string $tableName Table name OR the entity FQN
+     */
     public function from(string $tableName, string $alias = '', string $indexBy = ''): static {
+        if (is_a($tableName, AEntity::class, true)) {
+            $tableName = $this->propHelper->setModelFQN($tableName)->getTableName();
+        }
+
         $this->from = new ExpressionFrom(
             $tableName,
             $alias,
@@ -344,18 +366,59 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
+    public function columns(array $columns): static {
+        $this->setColumns($columns);
+
+        return $this;
+    }
+
+    public function addColumn(string $name): static {
+        if (!in_array($name, $this->columns, true)) {
+            $this->columns[] = $name;
+        }
+
+        return $this;
+    }
+
+    public function addColumns(array $columns): static {
+        $this->setColumns(
+            array_merge(
+                $this->columns,
+                $columns
+            )
+        );
+
+        return $this;
+    }
+
+    protected function setColumns(array $columns): static {
+        $this->columns = array_values(
+            array_unique(
+                $columns
+            )
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param array[] $values
+     */
     public function values(array $values): static {
         $this->values = $values;
 
         return $this;
     }
 
-    public function addValue(array $value): static {
+    public function addValue(mixed $value): static {
         $this->values[] = $value;
 
         return $this;
     }
 
+    /**
+     * @param array[] $values
+     */
     public function addValues(array $values): static {
         $this->values = array_merge(
             $this->values,
@@ -417,14 +480,15 @@ class QueryBuilder implements IQueryBuilder {
             $this->tableNameEscaper->escapeTableName($this->tableName),
         ];
 
-        if ($this->set) {
-            $parts[] = (string)$this->set;
-        } else {
+        if ($this->columns && $this->values) {
             $parts = [
                 ...$parts,
+                $this->compileColumns(),
                 "VALUES",
                 $this->compileRows()
             ];
+        } else {
+            $parts[] = (string)$this->set;
         }
 
         return $parts;
@@ -453,16 +517,22 @@ class QueryBuilder implements IQueryBuilder {
             : "";
     }
 
+    protected function compileColumns(): string {
+        return "(`"
+               . implode("`, `", $this->columns)
+               . "`)";
+    }
+
     protected function compileRows(): string {
         return "("
-            . implode(
-                "), (",
-                array_map(
-                    static fn(array $values): string => implode(", ", $values),
-                    $this->values
-                )
-            )
-            . ")";
+               . implode(
+                   "), (",
+                   array_map(
+                       static fn(array $values): string => implode(", ", $values),
+                       $this->values
+                   )
+               )
+               . ")";
     }
 
     protected function compileQueryParts(array $parts): string {
