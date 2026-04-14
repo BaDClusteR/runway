@@ -26,6 +26,7 @@ use Runway\DataStorage\QueryBuilder\Expression\ExpressionSet;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionWhere;
 use Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder;
 use Runway\Model\AEntity;
+use Runway\Model\Exception\ModelException;
 use Runway\Model\Helper\IDataStoragePropertiesHelper;
 use Runway\Singleton\Container;
 
@@ -71,6 +72,11 @@ class QueryBuilder implements IQueryBuilder {
     protected array $limit = [];
 
     protected ?IDataStorageDriver $dataStorageDriver = null;
+
+    /**
+     * @var class-string<AEntity>|''
+     */
+    private string $entityFQN = '';
 
     /**
      * @throws DBConnectionException
@@ -144,16 +150,16 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    /**
-     * @param string $tableName Table name OR the entity FQN
-     */
-    public function from(string $tableName, string $alias = '', string $indexBy = ''): static {
-        if (is_a($tableName, AEntity::class, true)) {
-            $tableName = $this->propHelper->setModelFQN($tableName)->getTableName();
+    public function from(string $tableNameOrEntityFQN, string $alias = '', string $indexBy = ''): static {
+        if (is_a($tableNameOrEntityFQN, AEntity::class, true)) {
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $this->setEntityFQN($tableNameOrEntityFQN);
+
+            $tableNameOrEntityFQN = $this->propHelper->setModelFQN($tableNameOrEntityFQN)->getTableName();
         }
 
         $this->from = new ExpressionFrom(
-            $tableName,
+            $tableNameOrEntityFQN,
             $alias,
             $indexBy,
         );
@@ -608,13 +614,52 @@ class QueryBuilder implements IQueryBuilder {
      * @throws DBException
      * @throws QueryBuilderException
      */
-    public function getResult(): array {
+    public function getResults(): array {
         $this->checkStorageDriver();
 
         return $this->dataStorageDriver->getResult(
             $this->getSQL(),
             $this->variables
         );
+    }
+
+    /**
+     * @throws DBException
+     * @throws QueryBuilderException
+     * @throws ModelException
+     */
+    public function getEntities(): array
+    {
+        if (!$this->entityFQN) {
+            throw new QueryBuilderException("Entity type is not set");
+        }
+
+        return array_map(
+            fn(array $row): AEntity => $this->mapRow($row),
+            $this->getResults()
+        );
+    }
+
+    /**
+     * @throws DBException
+     * @throws QueryBuilderException
+     * @throws ModelException
+     */
+    public function getFirstEntity(): ?AEntity
+    {
+        $firstRow = $this->getFirstResult();
+        return $firstRow
+            ? $this->mapRow($firstRow)
+            : null;
+    }
+
+    /**
+     * @throws ModelException
+     */
+    private function mapRow(array $row): AEntity {
+        /** @var AEntity $entity */
+        $entity = new $this->entityFQN();
+        return $entity->map($row);
     }
 
     /**
@@ -698,5 +743,33 @@ class QueryBuilder implements IQueryBuilder {
 
     public function getLastInsertId(): string {
         return $this->dataStorageDriver->getLastInsertId();
+    }
+
+    /**
+     * @param class-string<AEntity>|'' $entityFQN
+     *
+     * @throws QueryBuilderException
+     */
+    public function setEntityFQN(string $entityFQN): static {
+        if ($entityFQN) {
+            if (!class_exists($entityFQN)) {
+                throw new QueryBuilderException("Entity '$entityFQN' does not exist");
+            }
+
+            if (!is_a($entityFQN, AEntity::class, true)) {
+                throw new QueryBuilderException("Entity '$entityFQN' does not implement " . AEntity::class);
+            }
+        }
+
+        $this->entityFQN = $entityFQN;
+
+        return $this;
+    }
+
+    /**
+     * @return class-string<AEntity>|''
+     */
+    public function getEntityFQN(): string {
+        return $this->entityFQN;
     }
 }

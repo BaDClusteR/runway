@@ -12,6 +12,8 @@ use Runway\DataStorage\QueryBuilder\Expression\ExpressionFunc;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionMath;
 use Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder;
+use Runway\Model\AEntity;
+use Runway\Model\Exception\ModelException;
 
 interface IQueryBuilder {
     public function setDataStorageDriver(IDataStorageDriver $dataStorageDriver): static;
@@ -20,7 +22,7 @@ interface IQueryBuilder {
 
     public function select(...$args): static;
 
-    public function from(string $tableName, string $alias = '', string $indexBy = ''): static;
+    public function from(string $tableNameOrEntityFQN, string $alias = '', string $indexBy = ''): static;
 
     public function clearFrom(): static;
 
@@ -130,7 +132,22 @@ interface IQueryBuilder {
      * @throws DBException
      * @throws QueryBuilderException
      */
-    public function getResult(): array;
+    public function getResults(): array;
+
+    /**
+     * @return AEntity[]
+     *
+     * @throws DBException
+     * @throws QueryBuilderException
+     */
+    public function getEntities(): array;
+
+    /**
+     * @throws DBException
+     * @throws QueryBuilderException
+     * @throws ModelException
+     */
+    public function getFirstEntity(): ?AEntity;
 
     /**
      * @throws DBException
@@ -165,4 +182,16 @@ interface IQueryBuilder {
     public function getLastInsertId(): string;
 
     public function expr(): IExpressionBuilder;
+
+    /**
+     * @param class-string<AEntity>|'' $entityFQN
+     *
+     * @throws QueryBuilderException
+     */
+    public function setEntityFQN(string $entityFQN): static;
+
+    /**
+     * @return class-string<AEntity>|''
+     */
+    public function getEntityFQN(): string;
 }
