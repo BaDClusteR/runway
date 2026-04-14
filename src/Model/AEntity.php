@@ -71,16 +71,14 @@ abstract class AEntity {
     private function findRowById(int $id): ?array {
         $qb = static::getQueryBuilder();
 
-        $dsRow = $qb->select()
-            ->from(static::getPropHelper()->getTableName())
-            ->where(
-                $qb->expr()->eq(
-                    $this->getPrimaryProp()->getColumn(),
-                    ":id"
-                )
+        $dsRow = $qb->where(
+            $qb->expr()->eq(
+                $this->getPrimaryProp()->getColumn(),
+                ":id"
             )
-            ->setVariable("id", $id)
-            ->getFirstResult();
+        )
+        ->setVariable("id", $id)
+        ->getFirstResult();
 
         return $dsRow ?: null;
     }
@@ -119,7 +117,7 @@ abstract class AEntity {
             return;
         }
 
-        $qb = static::getQueryBuilder();
+        $qb = static::getPureQueryBuilder();
 
         foreach ($this->getProps() as $prop) {
             // we shouldn't update entity's id on update, should we?
@@ -292,7 +290,7 @@ abstract class AEntity {
     /**
      * @throws ModelException
      */
-    protected function map(array $row): static {
+    public function map(array $row): static {
         foreach ($row as $column => $value) {
             if ($prop = static::getPropHelper()->getPropByColumnName($column)) {
                 $this->{$prop->getPropName()} = static::$propConverter->convert(
@@ -427,7 +425,7 @@ abstract class AEntity {
         $result = [];
         $qb = static::generateSearchQueryBuilder($conditions, $orderBy);
 
-        foreach ($qb->getResult() as $row) {
+        foreach ($qb->getResults() as $row) {
             $result[] = new static()->map($row);
         }
 
@@ -487,11 +485,9 @@ abstract class AEntity {
         array|int|null    $limit = null
     ): IQueryBuilder {
         // Should be the first line of the method, triggers initialization of helpers/converters/etc.
-        $instance = new static();
+        new static();
 
-        $qb = (static::getQueryBuilder())
-            ->select()
-            ->from($instance->getTable());
+        $qb = static::getQueryBuilder();
 
         foreach ($conditions as $propName => $value) {
             if ($prop = static::getPropHelper()->getPropByName($propName)) {
@@ -559,7 +555,6 @@ abstract class AEntity {
         $qb = static::getQueryBuilder();
 
         $qb->delete()
-           ->from($this->getTable())
            ->where(
                $qb->expr()->eq(
                    $this->getPrimaryProp()->getColumn(),
@@ -592,8 +587,14 @@ abstract class AEntity {
         return Container::getInstance()->getService(IConverter::class);
     }
 
-    public static function getQueryBuilder(): IQueryBuilder {
+    public static function getPureQueryBuilder(): IQueryBuilder {
         return Container::getInstance()->getService(IQueryBuilder::class);
+    }
+
+    public static function getQueryBuilder(): IQueryBuilder {
+        return static::getPureQueryBuilder()
+            ->select()
+            ->from(static::class);
     }
 
     protected static function getPropHelper(): IDataStoragePropertiesHelper {

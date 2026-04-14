@@ -96,13 +96,10 @@ class Container extends Singleton implements IContainer {
 
     protected function getDataStorageDriverConnectOptions(): DataStorageConnectionOptionsDTO {
         return new DataStorageConnectionOptionsDTO(
+            dsn: $this->envVariablesProvider->getEnvVariable("DSN"),
             user: $this->envVariablesProvider->getEnvVariable("DB_USER"),
             password: $this->envVariablesProvider->getEnvVariable("DB_PASSWORD"),
-            dbName: $this->envVariablesProvider->getEnvVariable("DB_NAME"),
-            host: $this->envVariablesProvider->getEnvVariable("DB_HOST"),
-            port: $this->envVariablesProvider->getEnvVariable("DB_PORT"),
-            tableNamePrefix: $this->envVariablesProvider->getEnvVariable("DB_PREFIX"),
-            encoding: $this->envVariablesProvider->getEnvVariable("DB_ENCODING")
+            tableNamePrefix: $this->envVariablesProvider->getEnvVariable("DB_PREFIX")
         );
     }
 
@@ -132,12 +129,23 @@ class Container extends Singleton implements IContainer {
                     empty($services[$serviceName])
                     && $this->isTagSuitable($tagDTO, $tag, $extraFilters)
                 ) {
-                    $services[$serviceName] = $this->getService($serviceName);
+                    $services[$serviceName]['service'] = $this->getService($serviceName);
+                    $services[$serviceName]['priority'] = (int)($tagDTO->getExtra()['priority'] ?? 0);
                 }
             }
         }
 
-        return $services;
+        usort(
+            $services,
+            function ($a, $b) {
+                return (int)($a['priority'] ?? 0) <=> (int)($b['priority'] ?? 0);
+            }
+        );
+
+        return array_map(
+            static fn ($service) => ($service['service'] ?? null),
+            $services
+        );
     }
 
     protected function isTagSuitable(TagDTO $tag, string $tagName, array $extra): bool {
@@ -152,7 +160,7 @@ class Container extends Singleton implements IContainer {
                 array_any(
                     $extra,
                     static fn($value, $key) => !array_key_exists($key, $tagExtra)
-                        || $tagExtra[$key] !== $value
+                                               || $tagExtra[$key] !== $value
                 )
             ) {
                 return false;
@@ -337,6 +345,23 @@ class Container extends Singleton implements IContainer {
         throw new ServiceNotFoundException(
             new ServiceDTO($serviceName)
         );
+    }
+
+    public function getServiceTagsByName(string $tagName): array {
+        $result = [];
+
+        foreach ($this->services as $serviceDTO) {
+            foreach ($serviceDTO->getTags() as $tagDTO) {
+                if ($tagDTO->getName() === $tagName) {
+                    $result[] = [
+                        'serviceName' => $serviceDTO->getName(),
+                        'extra' => $tagDTO->getExtra(),
+                    ];
+                }
+            }
+        }
+
+        return $result;
     }
 
     public function hasService(string $serviceName): bool {

@@ -27,5 +27,12 @@ interface IContainer extends ISingleton {
 
     public function getServicesByTag(string $tag, array $extraFilters = []): array;
 
+    /**
+     * Returns tag metadata for all services matching a given tag name.
+     *
+     * @return array<array{serviceName: string, extra: array<string, mixed>}>
+     */
+    public function getServiceTagsByName(string $tagName): array;
+
     public function hasService(string $serviceName): bool;
 }
