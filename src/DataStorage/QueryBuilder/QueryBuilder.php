@@ -641,6 +641,24 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
+     * @throws ModelException
+     * @throws DBException
+     * @throws QueryBuilderException
+     */
+    public function iterateEntities(): iterable
+    {
+        if (!$this->entityFQN) {
+            throw new QueryBuilderException("Entity type is not set");
+        }
+
+        $result = $this->iterate();
+
+        foreach ($result as $row) {
+            yield $this->mapRow($row);
+        }
+    }
+
+    /**
      * @throws DBException
      * @throws QueryBuilderException
      * @throws ModelException

@@ -95,8 +95,8 @@ class ExpressionBuilder implements IExpressionBuilder {
             $leftPart,
             ExpressionComparisonOperatorsEnum::IN,
             is_array($rightPart)
-                ? implode(", ", $rightPart)
-                : $rightPart
+                ? "'" . implode("', '", $rightPart) . "'"
+                : "'$rightPart'"
         );
     }
 

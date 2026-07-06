@@ -143,6 +143,13 @@ interface IQueryBuilder {
     public function getEntities(): array;
 
     /**
+     * @throws ModelException
+     * @throws DBException
+     * @throws QueryBuilderException
+     */
+    public function iterateEntities(): iterable;
+
+    /**
      * @throws DBException
      * @throws QueryBuilderException
      * @throws ModelException

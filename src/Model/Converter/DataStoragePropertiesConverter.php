@@ -27,16 +27,23 @@ class DataStoragePropertiesConverter implements IDataStoragePropertiesConverter 
      * @throws DBException
      */
     public function convert(string $fromType, string $toType, mixed $value): mixed {
-        if ($fromType === $toType) {
+        if (
+            $fromType === $toType
+            && $fromType !== 'float'
+        ) {
             return $value;
         }
 
         $result = $value;
 
         if ($fromType === "int" && $toType === "DateTime") {
-            $result = $this->converter->timestampToDateTime($value);
+            $result = ($value === null)
+                ? $value
+                : $this->converter->timestampToDateTime($value);
         } elseif ($fromType === "DateTime" && $toType === "int") {
-            $result = $this->converter->dateTimeToTimestamp($value);
+            $result = $value === null
+                ? $value
+                : $this->converter->dateTimeToTimestamp($value);
 
             // get model entity by id.
         } elseif ($fromType === "int" && $value !== null && $this->isModelFQN($toType)) {
