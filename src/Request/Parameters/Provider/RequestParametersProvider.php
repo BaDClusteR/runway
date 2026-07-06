@@ -51,11 +51,11 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
     }
 
     public function getPath(): string {
-        return parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        return parse_url($this->getRequestUri(), PHP_URL_PATH);
     }
 
     public function getRequestUri(): string {
-        return $_SERVER['REQUEST_URI'] ?? '';
+        return (string)($_SERVER['REQUEST_URI'] ?? '');
     }
 
     public function getBody(): string {
@@ -88,6 +88,18 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
      */
     public function getHeaders(): array {
         $result = [];
+
+        if (!function_exists('getallheaders')) {
+            // CLI SAPI: собираем заголовки из $_SERVER (их там обычно нет, но на всякий случай)
+            foreach ($_SERVER as $name => $value) {
+                if (str_starts_with($name, 'HTTP_')) {
+                    $header = str_replace('_', '-', substr($name, 5));
+                    $result[strtolower($header)] = $value;
+                }
+            }
+
+            return $result;
+        }
 
         foreach (getallheaders() as $name => $value) {
             $result[strtolower($name)] = $value;

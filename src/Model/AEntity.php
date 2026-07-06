@@ -20,9 +20,9 @@ use Runway\Singleton\Container;
 use Runway\Singleton\IConverter;
 
 abstract class AEntity {
-    private bool $__isChanged = false;
+    protected bool $__isChanged = false;
 
-    private bool $__isPersisting = false;
+    protected bool $__isPersisting = false;
 
     /** @var IDataStoragePropertiesHelper[] */
     protected static array $propHelpers = [];
@@ -421,9 +421,13 @@ abstract class AEntity {
      * @throws DBException
      * @throws QueryBuilderException
      */
-    public static function find(array $conditions = [], array|string|null $orderBy = null): array {
+    public static function find(
+        array $conditions = [],
+        array|string|null $orderBy = null,
+        array|int|null $limit = null
+    ): array {
         $result = [];
-        $qb = static::generateSearchQueryBuilder($conditions, $orderBy);
+        $qb = static::generateSearchQueryBuilder($conditions, $orderBy, $limit);
 
         foreach ($qb->getResults() as $row) {
             $result[] = new static()->map($row);
@@ -437,11 +441,15 @@ abstract class AEntity {
      * @throws DBException
      * @throws QueryBuilderException
      */
-    public static function iterate(array $conditions = [], array|string|null $orderBy = null): iterable {
-        $qb = static::generateSearchQueryBuilder($conditions, $orderBy);
+    public static function iterate(
+        array $conditions = [],
+        array|string|null $orderBy = null,
+        array|int|null $limit = null
+    ): iterable {
+        $qb = static::generateSearchQueryBuilder($conditions, $orderBy, $limit);
 
         foreach ($qb->iterate() as $row) {
-            yield $row;
+            yield new static()->map($row);
         }
     }
 
@@ -465,7 +473,11 @@ abstract class AEntity {
      * @throws ModelException
      * @throws QueryBuilderException
      */
-    public static function findByUniqueIdentifier(int|string $id, array|string|null $orderBy = null): ?static {
+    public static function findByUniqueIdentifier(int|string|null $id, array|string|null $orderBy = null): ?static {
+        if (!$id) {
+            return null;
+        }
+
         return static::findOne(
             [(string)static::getPropHelper()->getPrimaryProp()?->getPropName() => $id],
             $orderBy
@@ -498,12 +510,16 @@ abstract class AEntity {
                         )
                     );
                 } elseif (is_array($value)) {
-                    $qb->andWhere(
-                        $qb->expr()->in(
-                            $prop->getColumn(),
-                            $value
-                        )
-                    );
+                    if (empty($value)) {
+                        $qb->andWhere("FALSE");
+                    } else {
+                        $qb->andWhere(
+                            $qb->expr()->in(
+                                $prop->getColumn(),
+                                $value
+                            )
+                        );
+                    }
                 } else {
                     $qb->andWhere(
                         $qb->expr()->eq(
@@ -591,10 +607,10 @@ abstract class AEntity {
         return Container::getInstance()->getService(IQueryBuilder::class);
     }
 
-    public static function getQueryBuilder(): IQueryBuilder {
+    public static function getQueryBuilder(string $alias = ''): IQueryBuilder {
         return static::getPureQueryBuilder()
             ->select()
-            ->from(static::class);
+            ->from(static::class, $alias);
     }
 
     protected static function getPropHelper(): IDataStoragePropertiesHelper {

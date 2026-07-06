@@ -49,6 +49,12 @@ class PathsProvider extends Singleton implements IPathsProvider
 
     public function getModulesDirectory(): string
     {
-        return static::$modulesDirectory;
+        if (static::$modulesDirectory) {
+            return static::$modulesDirectory;
+        }
+
+        return defined("MODULE_ROOT")
+            ? (string)constant("MODULE_ROOT")
+            : "";
     }
 }

@@ -17,6 +17,10 @@ class ExpressionJoin extends AExpressionComposite {
 
     protected string $separator = " ";
 
+    protected string $prefix = "";
+
+    protected string $postfix = "";
+
     /**
      * @var array{
      *     0: ExpressionJoinTypeEnum,
@@ -67,7 +71,7 @@ class ExpressionJoin extends AExpressionComposite {
     public function convertPart($part): string {
         $joinTypeString = $this->joinTypeConverter->toString($part[0]);
 
-        $result = "{$joinTypeString} JOIN ";
+        $result = "{$joinTypeString} JOIN `{{$part[1]}}`";
 
         // Table that is being joined
         if ($part[2]) {
