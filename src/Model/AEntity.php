@@ -203,6 +203,12 @@ abstract class AEntity {
      * @throws QueryBuilderException
      */
     private function getRefModelEntity(string $propName): array {
+        // A non-persistent entity cannot have referenced entities in the data storage yet. Moreover, searching by it
+        // would persist it to get its id, which can fail if its required props are not set yet.
+        if (!$this->isPersistent()) {
+            return [];
+        }
+
         if ($refProp = static::getPropHelper()->getRefByPropName($propName)) {
             return call_user_func(
                 [$refProp->refModel, 'find'],
