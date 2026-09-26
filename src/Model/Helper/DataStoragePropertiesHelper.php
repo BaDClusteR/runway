@@ -62,6 +62,7 @@ class DataStoragePropertiesHelper implements IDataStoragePropertiesHelper {
             $this->props = null;
             $this->refs = null;
             $this->primaryProp = false;
+            $this->tableName = null;
         }
 
         return $this;

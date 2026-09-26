@@ -27,7 +27,7 @@ class PDO implements IDataStorageDriver {
         protected IEventDispatcher $eventDispatcher,
     ) {}
 
-    private ?\PDO $connection;
+    private ?\PDO $connection = null;
 
     private string $tableNamePrefix = "";
 
@@ -44,7 +44,7 @@ class PDO implements IDataStorageDriver {
 
             $this->tableNamePrefix = $options->tableNamePrefix;
         } catch (Exception $e) {
-            $this->handleConnectionException($e, $dsn);
+            $this->handleConnectionException($e, $options->dsn);
         }
 
         return $this->connection;
@@ -186,15 +186,16 @@ class PDO implements IDataStorageDriver {
         Container::getInstance()->getEventDispatcher()->dispatch(
             'db.connection.error',
             new PDOConnectionErrorEnvelope(
-                $e->getCode(),
+                (int)$e->getCode(),
                 $e->getMessage(),
                 $dsn
             )
         );
 
+        // PDOException code can be a string SQLSTATE code (e.g. "HY000").
         throw new PDOConnectionException(
             $e->getMessage(),
-            $e->getCode(),
+            (int)$e->getCode(),
             $dsn,
             $e
         );
@@ -215,11 +216,12 @@ class PDO implements IDataStorageDriver {
         );
 
         throw new PDOStatementPreparationException(
-            $query,
-            $this->connection,
-            $e->getMessage(),
-            (int)$e->getCode(),
-            $e
+            sqlStateCode: (string)$e->getCode(),
+            query: $query,
+            connection: $this->connection,
+            message: $e->getMessage(),
+            code: (int)$e->getCode(),
+            previous: $e
         );
     }
 
