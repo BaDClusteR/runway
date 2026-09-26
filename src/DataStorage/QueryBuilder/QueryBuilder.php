@@ -493,8 +493,15 @@ class QueryBuilder implements IQueryBuilder {
                 "VALUES",
                 $this->compileRows()
             ];
-        } else {
-            $parts[] = (string)$this->set;
+        } elseif ($setParts = $this->set?->getParts()) {
+            // "INSERT ... SET" is MySQL-only syntax, so SET parts are compiled to the portable
+            // "(columns) VALUES (values)" form.
+            $parts = [
+                ...$parts,
+                "(`" . implode("`, `", array_column($setParts, 0)) . "`)",
+                "VALUES",
+                "(" . implode(", ", array_map(static fn(array $part): string => (string)$part[1], $setParts)) . ")"
+            ];
         }
 
         return $parts;
