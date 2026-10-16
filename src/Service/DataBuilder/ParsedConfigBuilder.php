@@ -93,8 +93,22 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
             method: $method,
             priority: (int)($rawData['priority'] ?? 0),
             description: (string)($rawData['description'] ?? ''),
-            filePath: $this->filePath
+            filePath: $this->filePath,
+            methods: $this->getRouteMethods($rawData),
+            requirements: array_map('strval', (array)($rawData['requirements'] ?? []))
         );
+    }
+
+    /**
+     * "methods" can be a list ([GET, POST]) or a single method (GET).
+     *
+     * @return string[]
+     */
+    protected function getRouteMethods(array $rawData): array {
+        return array_values(array_unique(array_map(
+            static fn(mixed $method): string => strtoupper((string)$method),
+            (array)($rawData['methods'] ?? [])
+        )));
     }
 
     /**

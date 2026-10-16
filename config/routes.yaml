@@ -1,10 +1,18 @@
 # Routes:
-#   - Route controller might be either service name or FQN
-#   - Route controller method should define all named variables that are defined in a path.
-#     All of them should be strings.
+#   - Route controller might be either service name or FQN.
+#   - The placeholder values are passed to the controller method by their names (as strings), so the method should
+#     define all the placeholders of the path.
+#   - A placeholder value is any text without slashes by default (route_wildcard_regexp parameter). Another regexp
+#     can be set in "requirements" or inline: {id<\d+>}.
+#   - If several routes match the path, the one with the highest priority wins (0 by default), then the most specific
+#     one: a static segment beats a placeholder, e.g. /contacts/search beats /contacts/{id}.
+#   - If the path matches, but the method does not, the response is "405 Method Not Allowed".
 #   - Route structure:
 #     route_system_name:
-#       path: /controller/path/with/{wildcards}/{something_more}
+#       path: /controller/path/with/{wildcards}/{something_more<\d+>}
 #       controller: ControllerServiceOrFQN::controllerMethod
+#       methods: [GET, POST]           # optional, any method by default
+#       requirements: { wildcards: '[a-z]+' }   # optional
+#       priority: 0                    # optional
 
 routes: { }

@@ -11,6 +11,7 @@ use Runway\Request\Parameters\DTO\FileDTO;
 use Runway\Request\Parameters\IRequestParameterValue;
 use Runway\Request\Parameters\Provider\IRequestParametersProvider;
 use Runway\Request\Parameters\RequestParameterValue;
+use Runway\Router\DTO\RouteMatchDTO;
 use Runway\Router\IRouter;
 use Runway\Singleton;
 use Runway\Singleton\Container;
@@ -70,6 +71,8 @@ class Request extends Singleton implements IRequest {
      * @var array<string, string>
      */
     protected array $arguments = [];
+
+    protected ?RouteMatchDTO $routeMatch = null;
 
     public function __construct(
         protected IRequestParametersProvider $requestParametersProvider,
@@ -290,6 +293,7 @@ class Request extends Singleton implements IRequest {
 
             return $router->process(
                 $this->getPath(),
+                $this->getMethod()
             );
         } catch (Throwable $e) {
             /** @var IExceptionController $exceptionController */
@@ -384,6 +388,16 @@ class Request extends Singleton implements IRequest {
 
     public function setRequestId(string $requestId): static {
         $this->requestId = $requestId;
+
+        return $this;
+    }
+
+    public function getRouteMatch(): ?RouteMatchDTO {
+        return $this->routeMatch;
+    }
+
+    public function setRouteMatch(?RouteMatchDTO $routeMatch): static {
+        $this->routeMatch = $routeMatch;
 
         return $this;
     }

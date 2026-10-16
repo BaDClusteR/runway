@@ -1,5 +1,6 @@
 parameters:
-  route_wildcard_regexp: '[A-Za-z0-9\_\-]+'
+  # The regexp of a route placeholder value without a requirement: any text without slashes.
+  route_wildcard_regexp: '[^/]+'
 
   runway_version: 1.0.3
 
