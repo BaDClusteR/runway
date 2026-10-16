@@ -32,3 +32,4 @@ yarn-error.log*
 hist/
 log/
 vendor/
+.phpunit.result.cache

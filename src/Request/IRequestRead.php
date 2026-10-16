@@ -4,6 +4,7 @@ namespace Runway\Request;
 
 use Runway\Request\Parameters\DTO\FileDTO;
 use Runway\Request\Parameters\IRequestParameterValue;
+use Runway\Router\DTO\RouteMatchDTO;
 
 interface IRequestRead {
     public function getProtocol(): string;
@@ -51,6 +52,11 @@ interface IRequestRead {
     public function getFiles(): array;
 
     public function getRequestId(): string;
+
+    /**
+     * The route found by the router: null before the routing or if no route matches.
+     */
+    public function getRouteMatch(): ?RouteMatchDTO;
 
     public function process(): IResponseRead;
 

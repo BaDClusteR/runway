@@ -3,11 +3,25 @@
 services:
   Runway\Router\IRouter:
     class: Runway\Router\Router
+
+  Runway\Router\Matcher\IRouteMatcher:
+    class: Runway\Router\Matcher\RouteMatcher
+
+  Runway\Router\Compiler\IRouteCompiler:
+    class: Runway\Router\Compiler\RouteCompiler
     arguments:
-      wildcardRegexp: '%route_wildcard_regexp'
+      defaultRequirement: '%route_wildcard_regexp'
+
+  # The routes of the config files. Other route sources are the services with the same tag.
+  Runway\Router\Provider\ConfigRouteProvider:
+    tags:
+      - name: router.route_provider
 
   Runway\Controller\IController404:
     class: Runway\Controller\Controller404
+
+  Runway\Controller\IMethodNotAllowedController:
+    class: Runway\Controller\MethodNotAllowedController
 
   Runway\Controller\IErrorController:
     class: Runway\Controller\ErrorController

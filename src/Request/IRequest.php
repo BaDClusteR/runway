@@ -3,6 +3,7 @@
 namespace Runway\Request;
 
 use Runway\Request\Parameters\DTO\FileDTO;
+use Runway\Router\DTO\RouteMatchDTO;
 
 interface IRequest extends IRequestRead {
     public function setProtocol(string $protocol): static;
@@ -57,4 +58,6 @@ interface IRequest extends IRequestRead {
     public function setArguments(array $arguments): static;
 
     public function setRequestId(string $requestId): static;
+
+    public function setRouteMatch(?RouteMatchDTO $routeMatch): static;
 }
