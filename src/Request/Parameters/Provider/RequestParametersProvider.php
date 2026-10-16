@@ -147,15 +147,39 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
     }
 
     /**
-     * @return FileDTO[]
+     * A field of several files ("photos[]") is split into the fields of the files: "photos[0]", "photos[1]" and so
+     * on (the nested ones too: "photos[a][0]").
+     *
+     * @return array<string, FileDTO> Field => file.
      */
     public function getFiles(): array {
         $result = [];
 
-        foreach ($_FILES as $index => $file) {
-            $result[$index] = $this->fileParametersDataBuilder->buildFileParameter($file);
+        foreach ($_FILES as $field => $file) {
+            $this->addFiles($result, (string)$field, $file);
         }
 
         return $result;
+    }
+
+    /**
+     * PHP gives the files of a field as separate arrays of their names, sizes and so on.
+     *
+     * @param array<string, FileDTO> $result
+     */
+    private function addFiles(array &$result, string $field, array $file): void {
+        if (!is_array($file['name'] ?? null)) {
+            $result[$field] = $this->fileParametersDataBuilder->buildFileParameter($file);
+
+            return;
+        }
+
+        foreach (array_keys($file['name']) as $key) {
+            $this->addFiles(
+                $result,
+                "{$field}[$key]",
+                array_map(static fn(mixed $values): mixed => is_array($values) ? ($values[$key] ?? null) : null, $file)
+            );
+        }
     }
 }
