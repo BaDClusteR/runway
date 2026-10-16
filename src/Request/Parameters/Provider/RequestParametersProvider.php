@@ -8,8 +8,13 @@ use Runway\Request\Parameters\DataBuilder\IFileParametersDataBuilder;
 use Runway\Request\Parameters\DTO\FileDTO;
 
 readonly class RequestParametersProvider implements IRequestParametersProvider {
+    /**
+     * @param string|null $trustedProxies Comma-separated IP addresses of the reverse proxies (e.g. a load balancer):
+     *                                    only their X-Forwarded-For header is trusted, see getIpAddress().
+     */
     public function __construct(
         private IFileParametersDataBuilder $fileParametersDataBuilder,
+        private ?string                    $trustedProxies = null
     ) {}
 
     public function getMethod(): string {
@@ -29,17 +34,35 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
             return "127.0.0.1";
         }
 
-        return array_reduce(
-            ["HTTP_FASTLY_CLIENT_IP", "HTTP_X_FORWARDED_FOR", "REMOTE_ADDR"],
-            static function (string $carry, string $item): string {
-                if ($carry) {
-                    return $carry;
-                }
+        $remoteAddress = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $trustedProxies = $this->getTrustedProxies();
 
-                return (string)($_SERVER[$item] ?? "");
-            },
-            ""
-        );
+        // Anyone can send X-Forwarded-For: it's trusted only if the request came from a known proxy.
+        if (!in_array($remoteAddress, $trustedProxies, true)) {
+            return $remoteAddress;
+        }
+
+        // "client, proxy1, proxy2": every proxy appends the address it got the request from, so the client is the
+        // last address that is not a trusted proxy (the ones before it could be forged by the client).
+        $forwardedFor = array_map('trim', explode(',', (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')));
+
+        foreach (array_reverse($forwardedFor) as $address) {
+            if ($address !== '' && !in_array($address, $trustedProxies, true)) {
+                return $address;
+            }
+        }
+
+        return $remoteAddress;
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function getTrustedProxies(): array {
+        return array_values(array_filter(
+            array_map('trim', explode(',', (string)$this->trustedProxies)),
+            static fn(string $address): bool => $address !== ''
+        ));
     }
 
     protected function isCLI(): bool {
@@ -51,7 +74,8 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
     }
 
     public function getPath(): string {
-        return parse_url($this->getRequestUri(), PHP_URL_PATH);
+        // Null without a path, false for a malformed URI (e.g. "//:80"): both are the root, not a TypeError.
+        return parse_url($this->getRequestUri(), PHP_URL_PATH) ?: '/';
     }
 
     public function getRequestUri(): string {

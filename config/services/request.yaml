@@ -16,3 +16,5 @@ services:
 
   Runway\Request\Parameters\Provider\IRequestParametersProvider:
     class: Runway\Request\Parameters\Provider\RequestParametersProvider
+    arguments:
+      trustedProxies: '#TRUSTED_PROXIES'
