@@ -519,10 +519,25 @@ abstract class AEntity {
                     if (empty($value)) {
                         $qb->andWhere("FALSE");
                     } else {
+                        // Every value is a query variable, like in the "=" condition below.
+                        $placeholders = [];
+
+                        foreach (array_values($value) as $index => $item) {
+                            $placeholders[] = ":{$propName}_$index";
+                            $qb->setVariable(
+                                "{$propName}_$index",
+                                static::$propConverter->convert(
+                                    $prop->getPropType(),
+                                    $prop->getDataStorageType(),
+                                    $item
+                                )
+                            );
+                        }
+
                         $qb->andWhere(
                             $qb->expr()->in(
                                 $prop->getColumn(),
-                                $value
+                                $placeholders
                             )
                         );
                     }

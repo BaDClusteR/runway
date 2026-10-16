@@ -87,6 +87,11 @@ class ExpressionBuilder implements IExpressionBuilder {
         );
     }
 
+    /**
+     * @param ExpressionFunc|ExpressionMath|string|string[] $rightPart SQL, like the other expressions: the values must
+     *                                                                 be query variables (e.g. [":id_0", ":id_1"]) or a
+     *                                                                 subquery, they are not quoted or escaped.
+     */
     public function in(
         ExpressionFunc|ExpressionMath|string $leftPart,
         ExpressionFunc|ExpressionMath|string|array $rightPart
@@ -95,8 +100,8 @@ class ExpressionBuilder implements IExpressionBuilder {
             $leftPart,
             ExpressionComparisonOperatorsEnum::IN,
             is_array($rightPart)
-                ? "'" . implode("', '", $rightPart) . "'"
-                : "'$rightPart'"
+                ? implode(', ', $rightPart)
+                : $rightPart
         );
     }
 
