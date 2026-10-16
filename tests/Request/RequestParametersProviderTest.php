@@ -18,6 +18,27 @@ class RequestParametersProviderTest extends TestCase {
 
     protected function tearDown(): void {
         $_SERVER = $this->server;
+        $_FILES = [];
+    }
+
+    public function testFilesOfField(): void {
+        $_FILES = [
+            'avatar' => ['name' => 'a.jpg', 'type' => 'image/jpeg', 'size' => 10, 'tmp_name' => '/tmp/a', 'error' => 0],
+            'photos' => [
+                'name'     => ['b.jpg', 'c.png'],
+                'type'     => ['image/jpeg', 'image/png'],
+                'size'     => [20, 30],
+                'tmp_name' => ['/tmp/b', '/tmp/c'],
+                'error'    => [0, 0],
+            ],
+        ];
+
+        $files = $this->provider()->getFiles();
+
+        self::assertSame(['avatar', 'photos[0]', 'photos[1]'], array_keys($files));
+        self::assertSame('c.png', $files['photos[1]']->getName());
+        self::assertSame('/tmp/c', $files['photos[1]']->getTmpName());
+        self::assertSame(30, $files['photos[1]']->getSize());
     }
 
     #[DataProvider('ipAddressProvider')]
