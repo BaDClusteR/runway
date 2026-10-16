@@ -34,15 +34,14 @@ class Kernel extends Singleton implements IKernel {
         }
 
         foreach ($response->getCookies() as $cookie) {
-            setcookie(
-                $cookie->getName(),
-                $cookie->getValue(),
-                $cookie->getExpires(),
-                $cookie->getPath(),
-                $cookie->getDomain(),
-                $cookie->isSecure(),
-                $cookie->isHttpOnly()
-            );
+            setcookie($cookie->getName(), $cookie->getValue(), [
+                'expires'  => $cookie->getExpires(),
+                'path'     => $cookie->getPath(),
+                'domain'   => $cookie->getDomain(),
+                'secure'   => $cookie->isSecure(),
+                'httponly' => $cookie->isHttpOnly(),
+                'samesite' => $cookie->getSameSite(),
+            ]);
         }
 
         echo $response->getBody();
