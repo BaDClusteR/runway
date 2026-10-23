@@ -9,6 +9,7 @@ use Runway\Env\Provider\IEnvVariablesProvider;
 use Runway\Event\IEventDispatcher;
 use Runway\Request\IRequestRead;
 use Runway\Request\IResponseRead;
+use Runway\Request\IStreamedResponse;
 use Runway\Singleton;
 
 class Kernel extends Singleton implements IKernel {
@@ -44,7 +45,18 @@ class Kernel extends Singleton implements IKernel {
             ]);
         }
 
-        echo $response->getBody();
+        if (!$response instanceof IStreamedResponse) {
+            echo $response->getBody();
+
+            return;
+        }
+
+        // Every piece goes to the client at once: the output buffers would collect them (a buffer that cannot be
+        // removed stays).
+        while (ob_get_level() > 0 && ob_end_flush()) {
+        }
+
+        $response->sendBody();
     }
 
     protected function init(): void {
