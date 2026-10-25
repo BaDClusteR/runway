@@ -27,6 +27,8 @@ services:
 
   Runway\Tests\Fixture\Service\CircularB: ~
 
+  Runway\Tests\Fixture\Service\CircularEntry: ~
+
   Runway\Tests\Fixture\Service\UntypedService: ~
 
   Runway\Tests\Fixture\Service\MissingDependencyService: ~
@@ -52,6 +54,27 @@ services:
         priority: 10
         type: xml
       - fixture.other_tag
+
+  # The order of the tag: -1, 0 (no priority), 0 (not a number), 1, whatever the declaration order.
+  fixture.priority.one:
+    class: Runway\Tests\Fixture\Service\TaggedService
+    arguments: { name: one }
+    tags: [{ name: fixture.priority, priority: 1 }]
+
+  fixture.priority.none:
+    class: Runway\Tests\Fixture\Service\TaggedService
+    arguments: { name: none }
+    tags: [fixture.priority]
+
+  fixture.priority.minus:
+    class: Runway\Tests\Fixture\Service\TaggedService
+    arguments: { name: minus }
+    tags: [{ name: fixture.priority, priority: "-1" }]
+
+  fixture.priority.text:
+    class: Runway\Tests\Fixture\Service\TaggedService
+    arguments: { name: text }
+    tags: [{ name: fixture.priority, priority: high }]
 
   Runway\Tests\Fixture\Service\EventListener:
     events:

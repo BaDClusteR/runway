@@ -370,7 +370,7 @@ abstract class AEntity {
                     . $propValue
                 );
             } catch (DateMalformedStringException) {
-                return $propValue;
+                // As is: the setter or the prop type rejects it.
             }
         }
 

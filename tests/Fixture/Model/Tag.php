@@ -13,7 +13,6 @@ use Runway\Model\AEntity;
  * A string id (a code): the id must be a query variable, not a part of the SQL.
  *
  * @method string getCode()
- * @method string getLabel()
  * @method static setLabel(string $label)
  */
 #[Table('tags')]
@@ -23,4 +22,11 @@ class Tag extends AEntity {
 
     #[Column]
     protected string $label = '';
+
+    /**
+     * The getter of the entity: it gives the value to save and to toArray() too.
+     */
+    public function getLabel(): string {
+        return strtolower($this->label);
+    }
 }

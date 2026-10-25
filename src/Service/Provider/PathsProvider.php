@@ -7,14 +7,14 @@ use Runway\Singleton;
 class PathsProvider extends Singleton implements IPathsProvider
 {
     /**
-     * @var string[]
+     * @var string[] The package config first: the configs of the project can override its parameters.
      */
-    protected static array $configDirectories = [];
+    protected static array $configDirectories = [RUNWAY_CONFIG_ROOT];
 
     /**
-     * @var string[]
+     * @var string[] The later files override the earlier ones.
      */
-    protected static array $envFilePaths = [];
+    protected static array $envFilePaths = [RUNWAY_ROOT . "/.env"];
 
     protected static string $modulesDirectory = "";
 

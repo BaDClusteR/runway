@@ -35,7 +35,7 @@ class QueryBuilder implements IQueryBuilder {
     protected QueryOperationEnum $operation = QueryOperationEnum::SELECT;
 
     /**
-     * @var string[]
+     * @var array<string|\Stringable> The columns (SQL or expressions).
      */
     protected array $select = ["*"];
 
@@ -119,10 +119,7 @@ class QueryBuilder implements IQueryBuilder {
      */
     public function select(string|\Stringable ...$args): static {
         $this->operation = QueryOperationEnum::SELECT;
-        $this->select = array_map(
-            static fn(string|\Stringable $column): string => (string)$column,
-            array_values($args)
-        ) ?: ["*"];
+        $this->select = $args ?: ["*"];
 
         return $this;
     }
@@ -416,11 +413,7 @@ class QueryBuilder implements IQueryBuilder {
      * @param string[] $columns
      */
     protected function setColumns(array $columns): static {
-        $this->columns = array_values(
-            array_unique(
-                $columns
-            )
-        );
+        $this->columns = array_unique($columns);
 
         return $this;
     }
@@ -491,18 +484,18 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
-     * @return string[]
+     * @return array<string|\Stringable|null> See compileQueryParts().
      */
     protected function getSelectQueryParts(): array {
         return [
             "SELECT",
             implode(", ", $this->select),
-            (string)$this->from,
-            (string)$this->join,
-            (string)$this->where,
-            (string)$this->groupBy,
-            (string)$this->having,
-            (string)$this->orderBy,
+            $this->from,
+            $this->join,
+            $this->where,
+            $this->groupBy,
+            $this->having,
+            $this->orderBy,
             $this->getLimit()
         ];
     }
@@ -538,25 +531,25 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
-     * @return string[]
+     * @return array<string|\Stringable|null> See compileQueryParts().
      */
     protected function getUpdateQueryParts(): array {
         return [
             "UPDATE",
             $this->tableNameEscaper->escapeTableName($this->tableName),
-            (string)$this->set,
-            (string)$this->where
+            $this->set,
+            $this->where
         ];
     }
 
     /**
-     * @return string[]
+     * @return array<string|\Stringable|null> See compileQueryParts().
      */
     protected function getDeleteQueryParts(): array {
         return [
             "DELETE ",
-            (string)$this->from,
-            (string)$this->where
+            $this->from,
+            $this->where
         ];
     }
 
@@ -585,13 +578,13 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
-     * @param string[] $parts The empty ones are skipped.
+     * @param array<string|\Stringable|null> $parts The SQL of the parts (the expressions as strings), the empty ones are skipped.
      */
     protected function compileQueryParts(array $parts): string {
         return implode(
             " ",
             array_filter(
-                $parts
+                array_map(static fn(string|\Stringable|null $part): string => (string)$part, $parts)
             )
         );
     }

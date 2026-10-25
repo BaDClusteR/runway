@@ -121,6 +121,10 @@ $user->setName('Ann')->persist();                          // INSERT or UPDATE (
 
 ## Upgrading to 2.0
 
+See [CHANGELOG.md](CHANGELOG.md) for all the changes. In short:
+
+- The routes are path templates (`/chats/{chatId<\d+>}`), the placeholders are passed to the controller by their names.
+- The database connection is `DSN` (with `DB_USER`, `DB_PASSWORD`, `DB_PREFIX`) instead of `DB_HOST`, `DB_NAME`, etc.
 - `IQueryBuilder::setLimit($limit, $offset)` makes `LIMIT $limit OFFSET $offset`: it was `LIMIT $limit, $offset`, which
   MySQL reads as the offset first. A call that passed the offset first (`setLimit($offset, $count)`) must swap them.
 - `LIKE` / `NOT LIKE` comparisons are valid SQL (they were `IS LIKE`).

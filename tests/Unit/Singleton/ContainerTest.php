@@ -17,6 +17,7 @@ use Runway\Singleton\Container;
 use Runway\Tests\Fixture\Service\ArgumentsService;
 use Runway\Tests\Fixture\Service\CircularA;
 use Runway\Tests\Fixture\Service\CircularB;
+use Runway\Tests\Fixture\Service\CircularEntry;
 use Runway\Tests\Fixture\Service\ExclamationGreeter;
 use Runway\Tests\Fixture\Service\Greeter;
 use Runway\Tests\Fixture\Service\IGreeter;
@@ -98,6 +99,35 @@ class ContainerTest extends TestCase {
         // The chain is clean after the exception: the next request is the same error, not another one.
         $this->expectException(CircularDependencyException::class);
         $this->container->getService(CircularB::class);
+    }
+
+    public function testCircularDependencyChainStartsAtCycle(): void {
+        try {
+            $line = __LINE__ + 1;
+            $this->container->getService(CircularEntry::class);
+            self::fail('No exception');
+        } catch (CircularDependencyException $e) {
+            $chain = $e->getDependencyChain();
+
+            self::assertSame([CircularA::class, CircularB::class], array_map(static fn($link): string => $link->serviceName, $chain));
+
+            // The call outside of the container.
+            foreach ($chain as $link) {
+                self::assertSame(__FILE__, $link->fileName);
+                self::assertSame($line, $link->line);
+                self::assertSame(Container::class . '::getService', $link->method);
+            }
+        }
+    }
+
+    public function testServicesByTagPriorityDefaults(): void {
+        self::assertSame(
+            ['minus', 'none', 'text', 'one'],
+            array_map(
+                static fn(mixed $service): string => $service instanceof TaggedService ? $service->name : '',
+                $this->container->getServicesByTag('fixture.priority')
+            )
+        );
     }
 
     public function testDependencyChainIsCleanAfterMissingService(): void {

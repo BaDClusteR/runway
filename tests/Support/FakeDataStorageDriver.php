@@ -24,6 +24,11 @@ final class FakeDataStorageDriver implements IDataStorageDriver {
 
     public string $lastInsertId = '';
 
+    /**
+     * @var \Throwable|null Thrown by the next query.
+     */
+    public ?\Throwable $exception = null;
+
     public ?DataStorageConnectionOptionsDTO $connectedWith = null;
 
     /**
@@ -90,6 +95,13 @@ final class FakeDataStorageDriver implements IDataStorageDriver {
      */
     private function record(string $method, string $query, mixed $vars): array {
         $this->queries[] = ['method' => $method, 'query' => $query, 'vars' => $vars];
+
+        if ($this->exception !== null) {
+            $exception = $this->exception;
+            $this->exception = null;
+
+            throw $exception;
+        }
 
         return array_shift($this->results) ?? [];
     }

@@ -360,6 +360,71 @@ class EntityTest extends TestCase {
         $first->persist();
     }
 
+    public function testGetterOfEntityIsUsed(): void {
+        $this->driver->willReturn([['code' => 'a', 'label' => 'Old']]);
+        $tag = Tag::findOne(['code' => 'a']);
+        self::assertInstanceOf(Tag::class, $tag);
+
+        self::assertSame('old', $tag->getLabel());
+        self::assertSame(['label' => 'old'], $tag->toArray());
+        self::assertSame(['code' => 'a', 'label' => 'old'], $tag->toArray(true));
+
+        $tag->setLabel('NEW');
+        $tag->persist();
+        self::assertSame(['label' => 'new', '__runway_id' => 'a'], $this->driver->queries[1]['vars']);
+    }
+
+    public function testFailedPersistCanBeRepeated(): void {
+        $user = new User()->setName('Ann');
+        $this->driver->exception = new \RuntimeException('Connection lost');
+
+        try {
+            $user->persist();
+            self::fail('No exception');
+        } catch (\RuntimeException $e) {
+            self::assertSame('Connection lost', $e->getMessage());
+        }
+
+        $this->driver->lastInsertId = '4';
+        $user->persist();
+
+        self::assertSame(4, $user->getId());
+        self::assertCount(2, $this->driver->queries);
+    }
+
+    public function testChangeOfEntityThatIsNotLoaded(): void {
+        $user = new User();
+        $user->set(['id' => 5, 'name' => 'Ann']);
+
+        $user->persist();
+
+        self::assertStringStartsWith('UPDATE `{users}` SET', $this->driver->queries[0]['query']);
+        self::assertIsArray($this->driver->queries[0]['vars']);
+        self::assertSame(5, $this->driver->queries[0]['vars']['__runway_id']);
+    }
+
+    public function testNullValuesAreNotChange(): void {
+        $this->driver->willReturn([$this->userRow(['created_at' => null, 'score' => null])]);
+        $user = new User(5);
+
+        $user->persist();
+
+        self::assertCount(1, $this->driver->queries);
+    }
+
+    public function testListOfValuesWithKeys(): void {
+        User::find(['id' => [3 => 5, 'a' => 6]], null, [1 => 10]);
+
+        self::assertSame('SELECT * FROM `{users}` WHERE id IN (:id_0, :id_1) LIMIT 0 OFFSET 10', $this->driver->queries[0]['query']);
+        self::assertSame(['id_0' => 5, 'id_1' => 6], $this->driver->queries[0]['vars']);
+    }
+
+    public function testQueryBuildersOfModel(): void {
+        self::assertSame('SELECT * FROM `{users}` u', User::getQueryBuilder('u')->getSQL());
+        self::assertSame('SELECT *', User::getPureQueryBuilder()->getSQL());
+        self::assertNotSame(User::getPureQueryBuilder(), User::getPureQueryBuilder());
+    }
+
     public function testMapIgnoresUnknownColumns(): void {
         $user = new User()->map(['name' => 'Ann', 'unknown' => 'x', 'notStored' => 'x']);
 
