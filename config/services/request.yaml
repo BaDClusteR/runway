@@ -8,9 +8,6 @@ services:
   Runway\Request\IResponse:
     class: Runway\Request\Response
 
-  Runway\IRequestParameterValue:
-    class: Runway\RequestParameterValue
-
   Runway\Request\Parameters\DataBuilder\IFileParametersDataBuilder:
     class: Runway\Request\Parameters\DataBuilder\FileParametersDataBuilder
 

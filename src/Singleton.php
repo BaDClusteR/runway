@@ -11,27 +11,25 @@ class Singleton implements ISingleton {
 
     /**
      * Array of instances for all derived classes
+     *
+     * @var array<class-string<Singleton>, Singleton>
      */
     protected static array $instances = [];
 
-    /**
-     * @return static
-     */
     public static function getInstance(): static {
-        $className = static::class;
+        $instance = static::$instances[static::class] ?? null;
 
-        if (!isset(static::$instances[$className])) {
-            static::$instances[$className] = new $className(
-                ...static::getConstructorParameters(static::class)
+        if (!$instance instanceof static) {
+            $instance = new \ReflectionClass(static::class)->newInstanceArgs(
+                static::getConstructorParameters(static::class)
             );
+
+            static::$instances[static::class] = $instance;
         }
 
-        return static::$instances[$className];
+        return $instance;
     }
 
-    /**
-     * @return static
-     */
     public static function resetInstance(): static {
         unset(static::$instances[static::class]);
 

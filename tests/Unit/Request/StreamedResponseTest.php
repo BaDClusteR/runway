@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Runway\Tests\Request;
+namespace Runway\Tests\Unit\Request;
 
 use PHPUnit\Framework\TestCase;
 use Runway\Exception\RuntimeException;

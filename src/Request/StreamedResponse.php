@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Runway\Request;
 
 use Runway\Exception\RuntimeException;
+use Runway\Request\Parameters\DTO\CookieDTO;
 
 /**
  * A response whose body is made by the callback while it's being sent (see IStreamedResponse). The callback gets the
@@ -28,7 +29,7 @@ class StreamedResponse extends Response implements IStreamedResponse {
     /**
      * @param callable(callable(string $data): void $send): void $callback
      * @param array<string, string>                              $headers
-     * @param array<string, string>                              $cookies
+     * @param CookieDTO[]                                        $cookies
      */
     public function __construct(int $code, callable $callback, array $headers = [], array $cookies = []) {
         parent::__construct($code, '', $headers, $cookies);

@@ -1,0 +1,65 @@
+# The fixture services of the tests (see tests/Fixture).
+
+parameters:
+  fixture_parameter: 'parameter value'
+
+services:
+  Runway\Tests\Fixture\Service\IGreeter:
+    class: Runway\Tests\Fixture\Service\Greeter
+
+  # Two decorators: the outer one is the last declared.
+  Runway\Tests\Fixture\Service\ExclamationGreeter:
+    decorates: Runway\Tests\Fixture\Service\IGreeter
+
+  Runway\Tests\Fixture\Service\PoliteGreeter:
+    decorates: Runway\Tests\Fixture\Service\IGreeter
+    arguments:
+      inner: '@inner'
+
+  Runway\Tests\Fixture\Service\ArgumentsService:
+    arguments:
+      name: 'literal'
+      parameter: '%fixture_parameter'
+      logLevel: '#LOG_LEVEL'
+      greeter: '@Runway\Tests\Fixture\Service\IGreeter'
+
+  Runway\Tests\Fixture\Service\CircularA: ~
+
+  Runway\Tests\Fixture\Service\CircularB: ~
+
+  Runway\Tests\Fixture\Service\UntypedService: ~
+
+  Runway\Tests\Fixture\Service\MissingDependencyService: ~
+
+  fixture.missing_class:
+    class: Runway\Tests\Fixture\Service\DoesNotExist
+
+  fixture.tagged.second:
+    class: Runway\Tests\Fixture\Service\TaggedService
+    arguments:
+      name: 'second'
+    tags:
+      - name: fixture.tagged
+        priority: 20
+        type: json
+
+  fixture.tagged.first:
+    class: Runway\Tests\Fixture\Service\TaggedService
+    arguments:
+      name: 'first'
+    tags:
+      - name: fixture.tagged
+        priority: 10
+        type: xml
+      - fixture.other_tag
+
+  Runway\Tests\Fixture\Service\EventListener:
+    events:
+      - event: fixture.event
+        method: onFixtureEvent
+      - event: fixture.event
+        method: onFixtureEventAgain
+
+  Runway\Tests\Fixture\Service\SingletonService: ~
+
+  Runway\Tests\Fixture\Controller\FixtureController: ~

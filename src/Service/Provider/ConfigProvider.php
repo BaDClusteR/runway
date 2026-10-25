@@ -71,6 +71,9 @@ class ConfigProvider extends Singleton implements IConfigProvider {
         );
     }
 
+    /**
+     * @return class-string<IConfigParser>[]
+     */
     protected function getConfigParsersFQN(): array {
         return [
             YamlConfigParser::class

@@ -12,13 +12,16 @@ use Runway\Service\Provider\PathsProvider;
 class EnvVariablesProvider implements IEnvVariablesProvider {
     private IEnvParser $envParser;
 
+    /**
+     * @var array<mixed>|null All the files: the later ones override the earlier ones.
+     */
     private static ?array $variables = null;
 
     /**
      * @throws EnvParserException
      */
     public function __construct() {
-        if (static::$variables === null) {
+        if (self::$variables === null) {
             $this->envParser = new EnvParser();
             $this->defineEnvVariables();
         }
@@ -36,11 +39,11 @@ class EnvVariablesProvider implements IEnvVariablesProvider {
             }
         }
 
-        static::$variables = array_merge(...$variablesByFile);
+        self::$variables = array_merge(...$variablesByFile);
     }
 
     public function getEnvVariable(string $variableName): mixed {
-        return static::$variables[$variableName] ?? null;
+        return self::$variables[$variableName] ?? null;
     }
 
     /**

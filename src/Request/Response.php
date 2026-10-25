@@ -11,7 +11,7 @@ class Response implements IResponse {
 
     /**
      * @param array<string, string> $headers
-     * @param array<string, string> $cookies
+     * @param CookieDTO[]           $cookies
      */
     public function __construct(
         private int    $code = 0,
@@ -42,7 +42,7 @@ class Response implements IResponse {
      * @return array<string, string>
      */
     protected function addDefaultContentLengthIfNeeded(array $headers): array {
-        $headers[static::CONTENT_LENGTH_HEADER] ??= strlen($this->body);
+        $headers[static::CONTENT_LENGTH_HEADER] ??= (string)strlen($this->body);
 
         return $headers;
     }

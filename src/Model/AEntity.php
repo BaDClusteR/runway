@@ -10,6 +10,7 @@ use Runway\DataStorage\Exception\DBConnectionException;
 use Runway\DataStorage\Exception\DBException;
 use Runway\DataStorage\QueryBuilder\Exception\QueryBuilderException;
 use Runway\DataStorage\QueryBuilder\IQueryBuilder;
+use Runway\Exception\RuntimeException;
 use Runway\Model\Converter\IDataStoragePropertiesConverter;
 use Runway\Model\DTO\DataStoragePropertyDTO;
 use Runway\Model\DTO\DataStorageReferenceDTO;
@@ -19,12 +20,27 @@ use Runway\Model\Helper\IDataStoragePropertiesHelper;
 use Runway\Singleton\Container;
 use Runway\Singleton\IConverter;
 
+/**
+ * The subclasses keep the constructor of an entity (an optional id): the search methods create them with "new static()".
+ *
+ * @phpstan-consistent-constructor
+ */
 abstract class AEntity {
+    /**
+     * The query variable of the id in UPDATE and DELETE: the other variables of UPDATE are the column names.
+     */
+    protected const string ID_VARIABLE = '__runway_id';
+
     protected bool $__isChanged = false;
 
     protected bool $__isPersisting = false;
 
-    /** @var IDataStoragePropertiesHelper[] */
+    /**
+     * @var array<string, mixed>|null Column => the value in the data storage (loaded or saved), see isStoredValuesChanged().
+     */
+    protected ?array $__storedValues = null;
+
+    /** @var array<class-string<AEntity>, IDataStoragePropertiesHelper> */
     protected static array $propHelpers = [];
 
     protected static ?IDataStoragePropertiesConverter $propConverter = null;
@@ -58,12 +74,16 @@ abstract class AEntity {
     }
 
     protected function init(): void {
-        $container = Container::getInstance();
+        static::getPropConverter();
+    }
 
-        static::$propConverter ??= $container->getService(IDataStoragePropertiesConverter::class);
+    protected static function getPropConverter(): IDataStoragePropertiesConverter {
+        return static::$propConverter ??= Container::getInstance()->getService(IDataStoragePropertiesConverter::class);
     }
 
     /**
+     * @return array<string, mixed>|null
+     *
      * @throws DBException
      * @throws ModelException
      * @throws QueryBuilderException
@@ -87,7 +107,8 @@ abstract class AEntity {
      * @throws ModelException
      */
     protected function getPrimaryProp(): DataStoragePropertyDTO {
-        return static::getPropHelper()->getPrimaryProp();
+        return static::getPropHelper()->getPrimaryProp()
+            ?? throw new ModelException(sprintf("%s does not have a primary property.", static::class));
     }
 
     protected function getTable(): string {
@@ -111,46 +132,62 @@ abstract class AEntity {
      * @throws QueryBuilderException
      * @throws DBException
      * @throws ModelException
+     * @throws RuntimeException A new entity refers to a new entity that refers to it (neither can be saved first).
      */
     public function persist(): void {
+        // A circular reference (A refers to B, B refers to A, neither is saved yet): the inner persist() of A returns,
+        // and the converter of B sees A is still not persistent (see DataStoragePropertiesConverter::convert()).
         if ($this->__isPersisting) {
             return;
         }
 
+        $this->__isPersisting = true;
+
+        try {
+            $this->doPersist();
+        } finally {
+            $this->__isPersisting = false;
+        }
+    }
+
+    /**
+     * @throws QueryBuilderException
+     * @throws DBException
+     * @throws ModelException
+     * @throws RuntimeException
+     */
+    protected function doPersist(): void {
         $qb = static::getPureQueryBuilder();
+        $values = [];
 
         foreach ($this->getProps() as $prop) {
             // we shouldn't update entity's id on update, should we?
             if (!$prop->isPrimary()) {
                 $column = $prop->getColumn();
-
-                $qb->addSet(
-                    $column,
-                    ":$column"
-                )->setVariable(
-                    $column,
-                    static::$propConverter->convert(
-                        $prop->getPropType(),
-                        $prop->getDataStorageType(),
-                        $this->getProp(
-                            $prop->getPropName()
-                        )
-                    )
+                $values[$column] = static::getPropConverter()->convert(
+                    $prop->getPropType(),
+                    $prop->getDataStorageType(),
+                    $this->getStoredPropValue($prop)
                 );
+
+                $qb->addSet($column, ":$column")
+                   ->setVariable($column, $values[$column]);
             }
         }
 
         // The model has an id? Then just update in the data storage.
         if ($this->isPersistent()) {
             // Persistent model did not change? Do nothing.
-            if ($this->__isChanged) {
+            if ($this->__isChanged || $this->isStoredValuesChanged($values)) {
+                // The id is a query variable: a string id (e.g. a code) is not a part of the SQL.
                 $qb->update(static::getPropHelper()->getTableName())
                    ->where(
                        $qb->expr()->eq(
                            $this->getPrimaryProp()->getColumn(),
-                           $this->getUniqueIdentifier()
+                           ":" . static::ID_VARIABLE
                        )
                    )
+                   ->setVariable(static::ID_VARIABLE, $this->getUniqueIdentifier())
                    ->execute();
             }
 
@@ -166,7 +203,37 @@ abstract class AEntity {
             );
         }
 
+        // Saved: the next persist() does not update it again unless it changes.
+        $this->__isChanged = false;
+        $this->__storedValues = $values;
+
         $this->persistReferences();
+    }
+
+    /**
+     * A change made by a setter of the entity itself (not by setProp()) is found by the values: they are compared to
+     * the loaded or the last saved ones. Unknown ones (neither loaded nor saved) are not a change.
+     *
+     * @param array<string, mixed> $values Column => value to save.
+     */
+    protected function isStoredValuesChanged(array $values): bool {
+        if ($this->__storedValues === null) {
+            return false;
+        }
+
+        foreach ($values as $column => $value) {
+            $storedValue = $this->__storedValues[$column] ?? null;
+
+            // A driver can give a number as a string ("4.5" of a DECIMAL column).
+            $isSame = ($storedValue === $value)
+                      || (is_scalar($storedValue) && is_scalar($value) && (string)$storedValue === (string)$value);
+
+            if (!$isSame) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -185,12 +252,9 @@ abstract class AEntity {
      */
     private function persistReferences(): void {
         foreach ($this->getReferences() as $ref) {
-            $propValues = $this->getProp($ref->propName);
-
-            if ($propValues !== null) {
-
-                /** @var AEntity $propValue */
-                foreach ((array)$propValues as $propValue) {
+            // The loaded or the given ones only: the references in the data storage are saved already.
+            foreach ((array)($this->{$ref->propName} ?? []) as $propValue) {
+                if ($propValue instanceof self) {
                     $propValue->persist();
                 }
             }
@@ -198,6 +262,8 @@ abstract class AEntity {
     }
 
     /**
+     * @return AEntity[]
+     *
      * @throws DBException
      * @throws ModelException
      * @throws QueryBuilderException
@@ -209,11 +275,13 @@ abstract class AEntity {
             return [];
         }
 
-        if ($refProp = static::getPropHelper()->getRefByPropName($propName)) {
-            return call_user_func(
-                [$refProp->refModel, 'find'],
+        $refProp = static::getPropHelper()->getRefByPropName($propName);
+        $refModel = $refProp?->refModel;
+
+        if ($refModel !== null && is_a($refModel, self::class, true)) {
+            return $refModel::find(
                 [$refProp->refProp => $this],
-                $refProp->refOrderBy
+                $refProp->refOrderBy ?: null
             );
         }
 
@@ -242,6 +310,22 @@ abstract class AEntity {
         }
 
         return null;
+    }
+
+    /**
+     * The value to save: of the getter of the entity, or of the prop itself. A prop without the default getter
+     * (NoGetter, e.g. a password hash) is hidden from toArray() and get*(), but it is saved.
+     *
+     * @throws ModelException
+     * @throws DBException
+     * @throws QueryBuilderException
+     */
+    protected function getStoredPropValue(DataStoragePropertyDTO $prop): mixed {
+        $propName = $prop->getPropName();
+
+        return method_exists($this, "get" . $this->getConverter()->capitalize($propName))
+            ? $this->getProp($propName)
+            : ($this->$propName ?? null);
     }
 
     /**
@@ -294,12 +378,15 @@ abstract class AEntity {
     }
 
     /**
+     * @param array<string, mixed> $row A row of the data storage: column => value.
+     *
      * @throws ModelException
      */
     public function map(array $row): static {
         foreach ($row as $column => $value) {
             if ($prop = static::getPropHelper()->getPropByColumnName($column)) {
-                $this->{$prop->getPropName()} = static::$propConverter->convert(
+                $this->__storedValues[$column] = $value;
+                $this->{$prop->getPropName()} = static::getPropConverter()->convert(
                     $prop->getDataStorageType(),
                     $prop->getPropType(),
                     $value
@@ -314,8 +401,10 @@ abstract class AEntity {
      * @throws DBException
      * @throws QueryBuilderException
      * @throws ModelException
+     *
+     * @param array<mixed> $arguments
      */
-    public function __call(string $name, array $arguments) {
+    public function __call(string $name, array $arguments): mixed {
         if (str_starts_with($name, "get")) {
             return $this->getProp(
                 $this->getConverter()->deCapitalize(
@@ -337,6 +426,8 @@ abstract class AEntity {
     }
 
     /**
+     * @return array<string, mixed> Prop name => value (the entities as arrays, the dates as strings).
+     *
      * @throws DBException
      * @throws ModelException
      * @throws QueryBuilderException
@@ -418,8 +509,9 @@ abstract class AEntity {
     }
 
     /**
-     * @param array             $conditions
-     * @param array|string|null $orderBy
+     * @param array<string, mixed>     $conditions Prop name => value: null is "IS NULL", an array is "IN".
+     * @param array<int, string>|string|null $orderBy    The prop name or [prop name, "ASC" or "DESC"].
+     * @param array<int, int>|int|null       $limit      The limit or [limit, offset].
      *
      * @return static[]
      *
@@ -443,6 +535,12 @@ abstract class AEntity {
     }
 
     /**
+     * @param array<string, mixed>     $conditions Prop name => value: null is "IS NULL", an array is "IN".
+     * @param array<int, string>|string|null $orderBy    The prop name or [prop name, "ASC" or "DESC"].
+     * @param array<int, int>|int|null       $limit      The limit or [limit, offset].
+     *
+     * @return iterable<static>
+     *
      * @throws ModelException
      * @throws DBException
      * @throws QueryBuilderException
@@ -460,6 +558,9 @@ abstract class AEntity {
     }
 
     /**
+     * @param array<string, mixed>     $conditions Prop name => value: null is "IS NULL", an array is "IN".
+     * @param array<int, string>|string|null $orderBy    The prop name or [prop name, "ASC" or "DESC"].
+     *
      * @throws QueryBuilderException
      * @throws ModelException
      * @throws DBException
@@ -475,6 +576,8 @@ abstract class AEntity {
     }
 
     /**
+     * @param array<int, string>|string|null $orderBy See find().
+     *
      * @throws DBException
      * @throws ModelException
      * @throws QueryBuilderException
@@ -491,9 +594,9 @@ abstract class AEntity {
     }
 
     /**
-     * @param array<string, mixed>                    $conditions
-     * @param array{0: string, 1: string}|string|null $orderBy
-     * @param array{0: int, 1: int}|int|null          $limit
+     * @param array<string, mixed>     $conditions Prop name => value: null is "IS NULL", an array is "IN".
+     * @param array<int, string>|string|null $orderBy    The prop name or [prop name, "ASC" or "DESC"].
+     * @param array<int, int>|int|null       $limit      The limit or [limit, offset].
      *
      * @throws ModelException
      */
@@ -517,7 +620,7 @@ abstract class AEntity {
                     );
                 } elseif (is_array($value)) {
                     if (empty($value)) {
-                        $qb->andWhere("FALSE");
+                        $qb->andWhere("1 = 0");
                     } else {
                         // Every value is a query variable, like in the "=" condition below.
                         $placeholders = [];
@@ -526,7 +629,7 @@ abstract class AEntity {
                             $placeholders[] = ":{$propName}_$index";
                             $qb->setVariable(
                                 "{$propName}_$index",
-                                static::$propConverter->convert(
+                                static::getPropConverter()->convert(
                                     $prop->getPropType(),
                                     $prop->getDataStorageType(),
                                     $item
@@ -549,7 +652,7 @@ abstract class AEntity {
                         )
                     )->setVariable(
                         $propName,
-                        static::$propConverter->convert(
+                        static::getPropConverter()->convert(
                             $prop->getPropType(),
                             $prop->getDataStorageType(),
                             $value
@@ -560,21 +663,22 @@ abstract class AEntity {
         }
 
         if ($orderBy) {
-            if (!is_array($orderBy)) {
-                $orderBy = [$orderBy, "ASC"];
-            }
+            [$orderByProp, $direction] = is_array($orderBy)
+                ? [$orderBy[0] ?? "", $orderBy[1] ?? "ASC"]
+                : [$orderBy, "ASC"];
 
-            if ($prop = static::getPropHelper()->getPropByName($orderBy[0])) {
+            // A prop only: the column is not a part of the request.
+            if ($prop = static::getPropHelper()->getPropByName($orderByProp)) {
                 $qb->addOrderBy(
                     $prop->getColumn(),
-                    $orderBy[1]
+                    $direction
                 );
             }
         }
 
         if ($limit) {
             if (is_array($limit)) {
-                $qb->setLimit($limit[0], $limit[1]);
+                $qb->setLimit($limit[0] ?? 0, $limit[1] ?? null);
             } else {
                 $qb->setLimit($limit);
             }
@@ -595,11 +699,11 @@ abstract class AEntity {
            ->where(
                $qb->expr()->eq(
                    $this->getPrimaryProp()->getColumn(),
-                   $this->getProp(
-                       $this->getPrimaryProp()->getPropName()
-                   )
+                   ":" . static::ID_VARIABLE
                )
-           )->execute();
+           )
+           ->setVariable(static::ID_VARIABLE, $this->getUniqueIdentifier())
+           ->execute();
     }
 
     /**

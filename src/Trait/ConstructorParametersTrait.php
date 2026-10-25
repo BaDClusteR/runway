@@ -5,11 +5,13 @@ namespace Runway\Trait;
 use Runway\Exception\RuntimeException;
 use Runway\Singleton\Container;
 use ReflectionClass;
-use ReflectionException;
-use ReflectionParameter;
+use ReflectionNamedType;
 
 trait ConstructorParametersTrait {
     /**
+     * @param class-string|object|null $classOrFqn
+     * @param array<string, mixed>     $definedParameters
+     *
      * @return array<string, mixed>
      */
     protected static function getConstructorParameters(
@@ -20,35 +22,26 @@ trait ConstructorParametersTrait {
         $params = [];
 
         $constructorReflection = new ReflectionClass($classOrFqn)->getConstructor();
-        /** @var ReflectionParameter $param */
-        foreach ((array)$constructorReflection?->getParameters() as $param) {
-            if (array_key_exists($param->getName(), $definedParameters)) {
-                $params[$param->getName()] = $definedParameters[$param->getName()];
+
+        foreach ($constructorReflection?->getParameters() ?? [] as $param) {
+            $paramName = $param->getName();
+
+            if (array_key_exists($paramName, $definedParameters)) {
+                $params[$paramName] = $definedParameters[$paramName];
 
                 continue;
             }
 
-            try {
-                $isOptional = true;
-                $defaultValue = $param->getDefaultValue();
-            } catch (ReflectionException) {
-                $isOptional = false;
-                $defaultValue = null;
-            }
+            $isOptional = $param->isDefaultValueAvailable();
+            $defaultValue = $isOptional ? $param->getDefaultValue() : null;
 
-            $paramName = $param->getName();
-            $paramType = (string)$param->getType()?->getName();
+            $type = $param->getType();
+            $paramType = ($type instanceof ReflectionNamedType) ? $type->getName() : '';
             $service = $paramType
                 ? Container::getInstance()->tryGetService($paramType)
                 : null;
 
-            if (
-                !$isOptional
-                && (
-                    !$paramType
-                    || !$service
-                )
-            ) {
+            if (!$isOptional && !$service) {
                 throw new RuntimeException(
                     "Cannot instantiate " . static::class . ": parameter \${$paramName} should be either a service or have default value."
                 );

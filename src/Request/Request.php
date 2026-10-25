@@ -38,17 +38,17 @@ class Request extends Singleton implements IRequest {
     protected string $requestId = '';
 
     /**
-     * @var array<string, mixed> $getParameters
+     * @var array<mixed> $getParameters
      */
     protected array $getParameters = [];
 
     /**
-     * @var array<string, mixed> $postParameters
+     * @var array<mixed> $postParameters
      */
     protected array $postParameters = [];
 
     /**
-     * @var array<string, mixed> $serverParameters
+     * @var array<mixed> $serverParameters
      */
     protected array $serverParameters = [];
 
@@ -58,7 +58,7 @@ class Request extends Singleton implements IRequest {
     protected array $headers = [];
 
     /**
-     * @var array<string, string> $cookies
+     * @var array<mixed> $cookies
      */
     protected array $cookies = [];
 
@@ -68,7 +68,7 @@ class Request extends Singleton implements IRequest {
     protected array $files = [];
 
     /**
-     * @var array<string, string>
+     * @var string[] The command line arguments (argv).
      */
     protected array $arguments = [];
 
@@ -121,7 +121,7 @@ class Request extends Singleton implements IRequest {
     }
 
     /**
-     * @param array<string, string> $getParameters
+     * @param array<mixed> $getParameters
      */
     public function setGetParameters(array $getParameters): static {
         $this->getParameters = $getParameters;
@@ -140,7 +140,7 @@ class Request extends Singleton implements IRequest {
     }
 
     /**
-     * @param array<string, string> $postParameters
+     * @param array<mixed> $postParameters
      */
     public function setPostParameters(array $postParameters): static {
         $this->postParameters = $postParameters;
@@ -154,6 +154,9 @@ class Request extends Singleton implements IRequest {
         );
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function getServerParameters(): array {
         return $this->serverParameters;
     }
@@ -167,9 +170,10 @@ class Request extends Singleton implements IRequest {
     public function getHeader(string $headerName): ?string {
         $headerName = strtolower($headerName);
 
-        return empty($this->headers[$headerName])
-            ? null
-            : $this->headers[$headerName];
+        $value = $this->headers[$headerName] ?? null;
+
+        // An empty header is no header, "0" is a value.
+        return ($value === null || $value === "") ? null : (string)$value;
     }
 
     /**
@@ -184,13 +188,14 @@ class Request extends Singleton implements IRequest {
     }
 
     public function getCookie(string $cookieName): ?string {
-        return empty($this->cookies[$cookieName])
-            ? null
-            : $this->cookies[$cookieName];
+        $value = $this->cookies[$cookieName] ?? null;
+
+        // An array ("name[]=...") is not the value of a cookie.
+        return (is_string($value) && $value !== "") ? $value : null;
     }
 
     /**
-     * @param array<string, string> $cookies
+     * @param array<mixed> $cookies
      */
     public function setCookies(array $cookies): static {
         $this->cookies = $cookies;
@@ -310,7 +315,7 @@ class Request extends Singleton implements IRequest {
     }
 
     /**
-     * @return callable(int $errno, string $errStr, string $errFile, int $errLine): never
+     * @return callable(int $errno, string $errStr, string $errFile, int $errLine): bool False: the standard handler goes on.
      */
     protected function getErrorHandler(): callable {
         return function (
@@ -319,6 +324,11 @@ class Request extends Singleton implements IRequest {
             string $errFile,
             int    $errLine
         ): bool {
+            // Suppressed by "@" (or not reported at all): the caller handles it.
+            if (!(error_reporting() & $errno)) {
+                return false;
+            }
+
             $this->logger->error($errStr);
 
             if ($this->isFatalError($errno)) {

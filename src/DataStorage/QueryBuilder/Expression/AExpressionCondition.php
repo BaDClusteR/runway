@@ -6,13 +6,21 @@ namespace Runway\DataStorage\QueryBuilder\Expression;
 
 use Runway\DataStorage\QueryBuilder\Enum\ExpressionWherePartTypeEnum;
 
+/**
+ * The parts: how the part joins the previous ones (none for the first one) and the condition.
+ *
+ * @extends AExpressionComposite<array{
+ *     0: ExpressionWherePartTypeEnum|null,
+ *     1: ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string
+ * }>
+ */
 class AExpressionCondition extends AExpressionComposite {
     protected string $postfix = "";
 
     protected string $separator = "";
 
     public function __construct(
-        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $where
+        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $where
     ) {
         $this->addPart([
             null,
@@ -21,7 +29,7 @@ class AExpressionCondition extends AExpressionComposite {
     }
 
     public function addAnd(
-        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $part
+        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $part
     ): static {
         return $this->addPart([
             ExpressionWherePartTypeEnum::AND,
@@ -30,7 +38,7 @@ class AExpressionCondition extends AExpressionComposite {
     }
 
     public function addOr(
-        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $part
+        ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $part
     ): static {
         return $this->addPart([
             ExpressionWherePartTypeEnum::OR,
@@ -38,15 +46,9 @@ class AExpressionCondition extends AExpressionComposite {
         ]);
     }
 
-    /**
-     * @param array{
-     *     0: ExpressionWherePartTypeEnum|null,
-     *     1: ExpressionComparison|AExpressionBoolean
-     * } $part
-     */
-    public function convertPart($part): string {
-        return $this->getWherePartType($part[0] ?? null)
-            . ($part[1] ?? "");
+    public function convertPart(mixed $part): string {
+        return $this->getWherePartType($part[0])
+            . $part[1];
     }
 
     public function getWherePartType(?ExpressionWherePartTypeEnum $partType): string {

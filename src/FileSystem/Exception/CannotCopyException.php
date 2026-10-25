@@ -12,6 +12,6 @@ class CannotCopyException extends FileCopyException {
         string     $dstPath,
         ?Throwable $previous = null
     ) {
-        parent::__construct("Cannot copy $srcPath to $dstPath");
+        parent::__construct("Cannot copy $srcPath to $dstPath", 0, $previous);
     }
 }

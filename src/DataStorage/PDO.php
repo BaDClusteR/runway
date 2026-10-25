@@ -19,7 +19,6 @@ use Runway\DataStorage\Exception\PDO\PDOStatementException;
 use Runway\DataStorage\Exception\PDO\PDOStatementPreparationException;
 use Runway\Env\Provider\IEnvVariablesProvider;
 use Runway\Event\IEventDispatcher;
-use Runway\Singleton\Container;
 
 class PDO implements IDataStorageDriver {
     public function __construct(
@@ -58,6 +57,7 @@ class PDO implements IDataStorageDriver {
      * @throws DBException
      */
     public function getResult(string $query, mixed $vars = []): array {
+        /** @var array<array<string, mixed>> FETCH_ASSOC gives the rows as column => value. */
         return $this->prepareAndExecute($query, $vars)
                     ->fetchAll(\PDO::FETCH_ASSOC);
     }
@@ -102,10 +102,10 @@ class PDO implements IDataStorageDriver {
                              : \PDO::FETCH_ASSOC
                      );
 
-        return array_map(
-            static fn(array $row): mixed => ($row[$columnName] ?? null),
+        return array_values(array_map(
+            static fn(mixed $row): mixed => is_array($row) ? ($row[$columnName] ?? null) : null,
             $data
-        );
+        ));
     }
 
     /**
@@ -123,12 +123,10 @@ class PDO implements IDataStorageDriver {
      * @throws PDOStatementException
      */
     protected function prepareAndExecute(string $query, mixed $vars = []): PDOStatement {
+        $vars = is_array($vars) ? $vars : (($vars === null) ? [] : [$vars]);
+
         if (!$this->isConnected()) {
             $this->handleDBNotConnectedError($query, $vars);
-        }
-
-        if (is_scalar($vars)) {
-            $vars = [$vars];
         }
 
         $statement = $this->prepareStatement($query);
@@ -147,7 +145,7 @@ class PDO implements IDataStorageDriver {
     }
 
     private function addPrefixToTableNames(string $query): string {
-        return preg_replace("/`(.*?){(.*?)}(.*?)`/", "`\$1{$this->tableNamePrefix}\$2\$3`", $query);
+        return (string)preg_replace("/`(.*?){(.*?)}(.*?)`/", "`\$1{$this->tableNamePrefix}\$2\$3`", $query);
     }
 
     protected function prepareQuery(string $query): string {
@@ -159,9 +157,10 @@ class PDO implements IDataStorageDriver {
      */
     protected function prepareStatement(string $query): PDOStatement {
         $query = $this->prepareQuery($query);
+        $connection = $this->connection ?? throw new DBNotConnectedException();
 
         try {
-            $result = $this->connection->prepare(
+            $result = $connection->prepare(
                 $query,
                 [
                     \PDO::ATTR_CURSOR  => \PDO::CURSOR_FWDONLY,
@@ -183,7 +182,7 @@ class PDO implements IDataStorageDriver {
      * @throws PDOConnectionException
      */
     public function handleConnectionException(Exception $e, string $dsn): never {
-        Container::getInstance()->getEventDispatcher()->dispatch(
+        $this->eventDispatcher->dispatch(
             'db.connection.error',
             new PDOConnectionErrorEnvelope(
                 (int)$e->getCode(),
@@ -205,7 +204,7 @@ class PDO implements IDataStorageDriver {
      * @throws PDOStatementPreparationException
      */
     public function handleStatementPreparationException(string $query, PDOException $e): never {
-        Container::getInstance()->getEventDispatcher()->dispatch(
+        $this->eventDispatcher->dispatch(
             'db.error.prepare',
             new PDOErrorEnvelope(
                 (int)$e->getCode(),
@@ -235,11 +234,12 @@ class PDO implements IDataStorageDriver {
     ): never {
         $errorInfo = $statement->errorInfo();
 
-        $sqlStateCode = (string)($errorInfo[0] ?? '');
-        $errorCode = (int)($errorInfo[1] ?? 0);
-        $errorMessage = (string)($errorInfo[2] ?? '');
+        $sqlStateCode = is_scalar($errorInfo[0] ?? null) ? (string)$errorInfo[0] : '';
+        $errorCode = is_numeric($errorInfo[1] ?? null) ? (int)$errorInfo[1] : 0;
+        $errorMessage = is_scalar($errorInfo[2] ?? null) ? (string)$errorInfo[2] : '';
+        $connection = $this->connection ?? throw new DBNotConnectedException();
 
-        Container::getInstance()->getEventDispatcher()?->dispatch(
+        $this->eventDispatcher->dispatch(
             'db.error',
             new PDOStatementErrorEnvelope(
                 sqlStateErrorCode: $sqlStateCode,
@@ -247,7 +247,7 @@ class PDO implements IDataStorageDriver {
                 message: $errorMessage,
                 query: $query,
                 statement: $statement,
-                connection: $this->connection
+                connection: $connection
             )
         );
 
@@ -255,7 +255,7 @@ class PDO implements IDataStorageDriver {
             sqlStateCode: $sqlStateCode,
             query: $query,
             statement: $statement,
-            connection: $this->connection,
+            connection: $connection,
             message: $errorMessage,
             code: $errorCode,
             previous: $previous
@@ -263,10 +263,12 @@ class PDO implements IDataStorageDriver {
     }
 
     /**
+     * @param array<mixed> $vars
+     *
      * @throws DBNotConnectedException
      */
     protected function handleDBNotConnectedError(string $query, array $vars): never {
-        Container::getInstance()->getEventDispatcher()?->dispatch(
+        $this->eventDispatcher->dispatch(
             'db.error.not_connected',
             new PDONotConnectedEnvelope(
                 $query,
@@ -277,12 +279,23 @@ class PDO implements IDataStorageDriver {
         throw new DBNotConnectedException();
     }
 
+    /**
+     * The .env values are typed: a numeric password (DB_PASSWORD=12345) is an int, a missing prefix is null.
+     */
     public function getConnectOptions(): DataStorageConnectionOptionsDTO {
         return new DataStorageConnectionOptionsDTO(
-            dsn: $this->envVariablesProvider->getEnvVariable('DSN'),
-            user: $this->envVariablesProvider->getEnvVariable('DB_USER'),
-            password: $this->envVariablesProvider->getEnvVariable('DB_PASSWORD'),
-            tableNamePrefix: $this->envVariablesProvider->getEnvVariable('DB_PREFIX')
+            dsn: $this->getStringEnvVariable('DSN') ?? '',
+            user: $this->getStringEnvVariable('DB_USER'),
+            password: $this->getStringEnvVariable('DB_PASSWORD'),
+            tableNamePrefix: $this->getStringEnvVariable('DB_PREFIX') ?? ''
         );
+    }
+
+    protected function getStringEnvVariable(string $name): ?string {
+        $value = $this->envVariablesProvider->getEnvVariable($name);
+
+        return is_scalar($value)
+            ? (string)$value
+            : null;
     }
 }

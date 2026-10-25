@@ -15,14 +15,23 @@ class ModuleConfigParser implements IModuleConfigParser {
 
             if (is_array($info)) {
                 return new ModuleConfigDTO(
-                    name: (string)($info['name'] ?? ''),
-                    description: (string)($info['description'] ?? ''),
-                    version: (string)($info['version'] ?? '')
+                    name: $this->getString($info, "name"),
+                    description: $this->getString($info, "description"),
+                    version: $this->getString($info, "version")
                 );
             }
         }
 
         return null;
+    }
+
+    /**
+     * @param array<mixed> $info
+     */
+    protected function getString(array $info, string $key): string {
+        $value = $info[$key] ?? "";
+
+        return is_scalar($value) ? (string)$value : "";
     }
 
     protected function getConfigFilePath(string $moduleRootPath): string {

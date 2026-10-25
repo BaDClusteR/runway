@@ -22,7 +22,7 @@ class EventDispatcher implements IEventDispatcher {
     protected array $services = [];
 
     /**
-     * @var EventDTO $events
+     * @var array<string, EventDTO[]> Event name => its listeners.
      */
     protected array $events = [];
 
@@ -53,10 +53,10 @@ class EventDispatcher implements IEventDispatcher {
                 $service = Container::getInstance()->getService(
                     $event->getServiceName()
                 );
-                $method = $event->getMethod();
+                $listener = [$service, $event->getMethod()];
 
-                if (method_exists($service, $method)) {
-                    $service->$method($envelope);
+                if (is_callable($listener)) {
+                    $listener($envelope);
                 }
 
                 unset($service);

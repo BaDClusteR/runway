@@ -18,22 +18,29 @@ class Converter extends Singleton implements IConverter {
     public const string DATE_TIME_FORMAT = DATE_ATOM;
 
     public function capitalize(string $str): string {
-        return strtoupper($str[0]) . substr($str, 1);
+        return ucfirst($str);
     }
 
     public function deCapitalize(string $str): string {
-        return strtolower($str[0]) . substr($str, 1);
+        return lcfirst($str);
     }
 
     public function dateTimeToTimestamp(DateTime|string|int $dateTime): int {
-        $result = -1;
+        if ($dateTime instanceof DateTime) {
+            return $dateTime->getTimestamp();
+        }
 
         if (is_numeric($dateTime)) {
-            $result = (int)$dateTime;
-        } elseif (is_string($dateTime)) {
-            $result = strtotime($dateTime);
-        } elseif ($dateTime instanceof DateTime) {
-            $result = $dateTime->getTimestamp();
+            return (int)$dateTime;
+        }
+
+        $result = strtotime($dateTime);
+
+        // -1 for a malformed string (as before), not a TypeError.
+        if ($result === false) {
+            $this->logger->warning(__METHOD__ . ": malformed date-time string ($dateTime)");
+
+            return -1;
         }
 
         return $result;

@@ -22,17 +22,17 @@ interface IRequestParametersProvider {
     public function getBody(): string;
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getGetParameters(): array;
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getPostParameters(): array;
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getServerParameters(): array;
 
@@ -42,7 +42,7 @@ interface IRequestParametersProvider {
     public function getHeaders(): array;
 
     /**
-     * @return array<string, string>
+     * @return array<mixed> A value is an array for "name[key]=value".
      */
     public function getCookies(): array;
 

@@ -6,15 +6,21 @@ use Runway\Singleton;
 
 class PathsProvider extends Singleton implements IPathsProvider
 {
+    /**
+     * @var string[]
+     */
     protected static array $configDirectories = [];
 
+    /**
+     * @var string[]
+     */
     protected static array $envFilePaths = [];
 
     protected static string $modulesDirectory = "";
 
     public function addConfigDirectory(string $directoryPath): void
     {
-        if (!in_array($directoryPath, self::$configDirectories, true)) {
+        if (!in_array($directoryPath, static::$configDirectories, true)) {
             static::$configDirectories[] = $directoryPath;
         }
     }
@@ -29,7 +35,7 @@ class PathsProvider extends Singleton implements IPathsProvider
 
     public function addEnvFilePath(string $directoryPath): void
     {
-        if (!in_array($directoryPath, self::$envFilePaths, true)) {
+        if (!in_array($directoryPath, static::$envFilePaths, true)) {
             static::$envFilePaths[] = $directoryPath;
         }
     }
@@ -53,8 +59,8 @@ class PathsProvider extends Singleton implements IPathsProvider
             return static::$modulesDirectory;
         }
 
-        return defined("MODULE_ROOT")
-            ? (string)constant("MODULE_ROOT")
-            : "";
+        $moduleRoot = defined("MODULE_ROOT") ? constant("MODULE_ROOT") : "";
+
+        return is_string($moduleRoot) ? $moduleRoot : "";
     }
 }

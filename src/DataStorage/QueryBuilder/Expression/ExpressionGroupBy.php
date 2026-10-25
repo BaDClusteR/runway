@@ -6,6 +6,9 @@ namespace Runway\DataStorage\QueryBuilder\Expression;
 
 use Runway\DataStorage\QueryBuilder\Expression\Trait\ExpressionCompositeDynamicArgsTrait;
 
+/**
+ * @extends AExpressionComposite<mixed>
+ */
 class ExpressionGroupBy extends AExpressionComposite {
     use ExpressionCompositeDynamicArgsTrait;
 

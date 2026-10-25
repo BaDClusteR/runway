@@ -66,7 +66,7 @@ class ConfigConverter implements IConfigConverter {
         return $result->setServiceConfig($this->services);
     }
 
-    protected function getAncestorService($serviceName): string {
+    protected function getAncestorService(string $serviceName): string {
         while (
             array_key_exists($serviceName, $this->services)
             && ($parent = $this->services[$serviceName]->getDecoratee())

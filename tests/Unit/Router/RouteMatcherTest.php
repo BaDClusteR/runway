@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Runway\Tests\Router;
+namespace Runway\Tests\Unit\Router;
 
 use PHPUnit\Framework\TestCase;
 use Runway\Router\Compiler\RouteCompiler;
@@ -156,6 +156,9 @@ class RouteMatcherTest extends TestCase {
      */
     protected function provider(array $routes): IRouteProvider {
         return new readonly class($routes) implements IRouteProvider {
+            /**
+             * @param RouteDTO[] $routes
+             */
             public function __construct(private array $routes) {}
 
             public function getRoutes(): array {

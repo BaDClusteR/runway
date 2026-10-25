@@ -17,8 +17,5 @@ services:
   Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder:
     class: Runway\DataStorage\QueryBuilder\ExpressionBuilder\ExpressionBuilder
 
-  Runway\DataStorage\QueryBuilder\Converter\IQueryOperationConverter:
-    class: Runway\DataStorage\QueryBuilder\Converter\QueryOperationConverter
-
   Runway\DataStorage\QueryBuilder\Converter\ITableNameEscaper:
     class: Runway\DataStorage\QueryBuilder\Converter\TableNameEscaper

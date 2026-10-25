@@ -9,6 +9,9 @@ interface IRequestParameterValue {
 
     public function asBool(): bool;
 
+    /**
+     * @return array<mixed>
+     */
     public function asArray(): array;
 
     public function isNull(): bool;

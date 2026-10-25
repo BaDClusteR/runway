@@ -18,6 +18,7 @@ use Runway\DataStorage\QueryBuilder\Expression\ExpressionFrom;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionFunc;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionGroupBy;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionHaving;
+use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNotNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionJoin;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionMath;
@@ -36,7 +37,7 @@ class QueryBuilder implements IQueryBuilder {
     /**
      * @var string[]
      */
-    protected array $select = [];
+    protected array $select = ["*"];
 
     protected string $tableName = '';
 
@@ -59,6 +60,9 @@ class QueryBuilder implements IQueryBuilder {
      */
     protected array $variables = [];
 
+    /**
+     * @var array<array<string|int|float>> The rows of INSERT.
+     */
     protected array $values = [];
 
     /**
@@ -79,14 +83,16 @@ class QueryBuilder implements IQueryBuilder {
     private string $entityFQN = '';
 
     /**
-     * @throws DBConnectionException
+     * @param IDataStorageDriver|null $dataStorageDriver The driver of the container by default: it connects to the data
+     *                                                  storage on the first query, not when the builder is created.
      */
     public function __construct(
-        protected ITableNameEscaper  $tableNameEscaper,
-        protected IExpressionBuilder $expressionBuilder,
-        protected IDataStoragePropertiesHelper $propHelper
+        protected ITableNameEscaper            $tableNameEscaper,
+        protected IExpressionBuilder           $expressionBuilder,
+        protected IDataStoragePropertiesHelper $propHelper,
+        ?IDataStorageDriver                    $dataStorageDriver = null
     ) {
-        $this->dataStorageDriver = Container::getInstance()->getDataStorageDriver();
+        $this->dataStorageDriver = $dataStorageDriver;
     }
 
     public function expr(): IExpressionBuilder {
@@ -109,11 +115,14 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
-     * @param string[] $args
+     * @param string|\Stringable ...$args
      */
-    public function select(...$args): static {
+    public function select(string|\Stringable ...$args): static {
         $this->operation = QueryOperationEnum::SELECT;
-        $this->select = $args ?: ["*"];
+        $this->select = array_map(
+            static fn(string|\Stringable $column): string => (string)$column,
+            array_values($args)
+        ) ?: ["*"];
 
         return $this;
     }
@@ -280,13 +289,13 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function where(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
+    public function where(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static {
         $this->where = new ExpressionWhere($condition);
 
         return $this;
     }
 
-    public function andWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
+    public function andWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static {
         $this->where = $this->where
             ? $this->where->addAnd($condition)
             : new ExpressionWhere($condition);
@@ -294,7 +303,7 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function orWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
+    public function orWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static {
         $this->where = $this->where
             ? $this->where->addOr($condition)
             : new ExpressionWhere($condition);
@@ -302,13 +311,13 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function having(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
+    public function having(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static {
         $this->having = new ExpressionHaving($condition);
 
         return $this;
     }
 
-    public function andHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
+    public function andHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static {
         $this->having = $this->having
             ? $this->having->addAnd($condition)
             : new ExpressionHaving($condition);
@@ -316,7 +325,7 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function orHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static {
+    public function orHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static {
         $this->having = $this->having
             ? $this->having->addOr($condition)
             : new ExpressionHaving($condition);
@@ -372,6 +381,9 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
+    /**
+     * @param string[] $columns
+     */
     public function columns(array $columns): static {
         $this->setColumns($columns);
 
@@ -386,6 +398,9 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
+    /**
+     * @param string[] $columns
+     */
     public function addColumns(array $columns): static {
         $this->setColumns(
             array_merge(
@@ -397,6 +412,9 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
+    /**
+     * @param string[] $columns
+     */
     protected function setColumns(array $columns): static {
         $this->columns = array_values(
             array_unique(
@@ -408,7 +426,7 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
-     * @param array[] $values
+     * @param array<array<string|int|float>> $values
      */
     public function values(array $values): static {
         $this->values = $values;
@@ -416,14 +434,17 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function addValue(mixed $value): static {
+    /**
+     * @param array<string|int|float> $value
+     */
+    public function addValue(array $value): static {
         $this->values[] = $value;
 
         return $this;
     }
 
     /**
-     * @param array[] $values
+     * @param array<array<string|int|float>> $values
      */
     public function addValues(array $values): static {
         $this->values = array_merge(
@@ -434,7 +455,10 @@ class QueryBuilder implements IQueryBuilder {
         return $this;
     }
 
-    public function setLimit(?int $limit, ?int $offset = null): static {
+    /**
+     * "LIMIT $limit OFFSET $offset" (the portable syntax: "LIMIT a, b" means the offset first in MySQL).
+     */
+    public function setLimit(int $limit, ?int $offset = null): static {
         $this->limit = $offset
             ? [$limit, $offset]
             : [$limit];
@@ -466,6 +490,9 @@ class QueryBuilder implements IQueryBuilder {
         );
     }
 
+    /**
+     * @return string[]
+     */
     protected function getSelectQueryParts(): array {
         return [
             "SELECT",
@@ -480,6 +507,9 @@ class QueryBuilder implements IQueryBuilder {
         ];
     }
 
+    /**
+     * @return string[]
+     */
     protected function getInsertQueryParts(): array {
         $parts = [
             "INSERT INTO",
@@ -507,6 +537,9 @@ class QueryBuilder implements IQueryBuilder {
         return $parts;
     }
 
+    /**
+     * @return string[]
+     */
     protected function getUpdateQueryParts(): array {
         return [
             "UPDATE",
@@ -516,6 +549,9 @@ class QueryBuilder implements IQueryBuilder {
         ];
     }
 
+    /**
+     * @return string[]
+     */
     protected function getDeleteQueryParts(): array {
         return [
             "DELETE ",
@@ -526,7 +562,7 @@ class QueryBuilder implements IQueryBuilder {
 
     protected function getLimit(): string {
         return $this->limit
-            ? "LIMIT " . implode(", ", $this->limit)
+            ? "LIMIT " . implode(" OFFSET ", $this->limit)
             : "";
     }
 
@@ -548,6 +584,9 @@ class QueryBuilder implements IQueryBuilder {
                . ")";
     }
 
+    /**
+     * @param string[] $parts The empty ones are skipped.
+     */
     protected function compileQueryParts(array $parts): string {
         return implode(
             " ",
@@ -618,13 +657,13 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
+     * @return array<array<string, mixed>>
+     *
      * @throws DBException
      * @throws QueryBuilderException
      */
     public function getResults(): array {
-        $this->checkStorageDriver();
-
-        return $this->dataStorageDriver->getResult(
+        return $this->getDataStorageDriver()->getResult(
             $this->getSQL(),
             $this->variables
         );
@@ -648,6 +687,8 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
+     * @return iterable<AEntity>
+     *
      * @throws ModelException
      * @throws DBException
      * @throws QueryBuilderException
@@ -679,6 +720,8 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
+     * @param array<string, mixed> $row
+     *
      * @throws ModelException
      */
     private function mapRow(array $row): AEntity {
@@ -688,13 +731,13 @@ class QueryBuilder implements IQueryBuilder {
     }
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws DBException
      * @throws QueryBuilderException
      */
     public function getFirstResult(): array {
-        $this->checkStorageDriver();
-
-        return $this->dataStorageDriver->getFirstResult(
+        return $this->getDataStorageDriver()->getFirstResult(
             $this->getSQL(),
             $this->variables
         );
@@ -705,22 +748,20 @@ class QueryBuilder implements IQueryBuilder {
      * @throws QueryBuilderException
      */
     public function getFirstScalarResult(): mixed {
-        $this->checkStorageDriver();
-
-        return $this->dataStorageDriver->getFirstScalarResult(
+        return $this->getDataStorageDriver()->getFirstScalarResult(
             $this->getSQL(),
             $this->variables
         );
     }
 
     /**
+     * @return iterable<array<string, mixed>>
+     *
      * @throws DBException
      * @throws QueryBuilderException
      */
     public function iterate(): iterable {
-        $this->checkStorageDriver();
-
-        return $this->dataStorageDriver->getResultsIterator(
+        return $this->getDataStorageDriver()->getResultsIterator(
             $this->getSQL(),
             $this->variables
         );
@@ -731,17 +772,16 @@ class QueryBuilder implements IQueryBuilder {
      * @throws QueryBuilderException
      */
     public function count(): int {
-        $this->checkStorageDriver();
+        // All the matching rows: without the limit and the order (the count of a page would be 0 from the second page).
+        $query = clone $this;
+        $query->operation = QueryOperationEnum::SELECT;
+        $query->select = ["COUNT(*)"];
+        $query->limit = [];
+        $query->orderBy = null;
 
-        $this->operation = QueryOperationEnum::SELECT;
-        $select = $this->select;
-        $this->select = ["COUNT(*)"];
+        $count = $query->getFirstScalarResult();
 
-        $result = (int)$this->getFirstScalarResult();
-
-        $this->select = $select;
-
-        return $result;
+        return is_numeric($count) ? (int)$count : 0;
     }
 
     /**
@@ -749,34 +789,30 @@ class QueryBuilder implements IQueryBuilder {
      * @throws QueryBuilderException
      */
     public function execute(): void {
-        $this->checkStorageDriver();
-
-        $this->dataStorageDriver->execute(
+        $this->getDataStorageDriver()->execute(
             $this->getSQL(),
             $this->variables
         );
     }
 
     /**
-     * @throws QueryBuilderException
+     * @throws DBConnectionException
      */
-    protected function checkStorageDriver(): void {
-        if (!$this->dataStorageDriver) {
-            throw new QueryBuilderException("Data storage driver is not set");
-        }
+    protected function getDataStorageDriver(): IDataStorageDriver {
+        return $this->dataStorageDriver ??= Container::getInstance()->getDataStorageDriver();
     }
 
     public function getLastInsertId(): string {
-        return $this->dataStorageDriver->getLastInsertId();
+        return $this->getDataStorageDriver()->getLastInsertId();
     }
 
     /**
-     * @param class-string<AEntity>|'' $entityFQN
+     * @param string $entityFQN An AEntity subclass, '' for none.
      *
      * @throws QueryBuilderException
      */
     public function setEntityFQN(string $entityFQN): static {
-        if ($entityFQN) {
+        if ($entityFQN !== "") {
             if (!class_exists($entityFQN)) {
                 throw new QueryBuilderException("Entity '$entityFQN' does not exist");
             }

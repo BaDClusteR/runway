@@ -23,6 +23,9 @@ class ConfigDTO {
         return $this->serviceConfig;
     }
 
+    /**
+     * @return RouteDTO[]
+     */
     public function getRouteConfig(): array {
         return $this->routeConfig;
     }

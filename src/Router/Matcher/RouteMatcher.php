@@ -121,7 +121,10 @@ class RouteMatcher implements IRouteMatcher {
      * @return IRouteProvider[]
      */
     protected function getRouteProviders(): array {
-        return $this->routeProviders ??= Container::getInstance()->getServicesByTag(static::ROUTE_PROVIDER_TAG);
+        return $this->routeProviders ??= array_values(array_filter(
+            Container::getInstance()->getServicesByTag(static::ROUTE_PROVIDER_TAG),
+            static fn(mixed $provider): bool => $provider instanceof IRouteProvider
+        ));
     }
 
     /**
@@ -147,7 +150,7 @@ class RouteMatcher implements IRouteMatcher {
             $routesByName[$route->route->name] = $route;
 
             // "/chats/{chatId}" and "/chats/{id}" match the same paths.
-            $pathKey = preg_replace('/\(\?P<\w+>/', '(', $route->regexp);
+            $pathKey = (string)preg_replace('/\(\?P<\w+>/', '(', $route->regexp);
 
             foreach ($routesByRegexp[$pathKey] ?? [] as $samePathRoute) {
                 if (

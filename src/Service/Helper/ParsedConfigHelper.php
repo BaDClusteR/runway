@@ -79,7 +79,7 @@ class ParsedConfigHelper {
     /**
      * @throws ServiceException
      */
-    public function mergeParsedConfigs(...$configs): ParsedConfigDTO {
+    public function mergeParsedConfigs(ParsedConfigDTO ...$configs): ParsedConfigDTO {
         $this->resetParsedConfig();
 
         foreach ($configs as $config) {

@@ -22,7 +22,10 @@ class DataStoragePropertiesHelper implements IDataStoragePropertiesHelper {
      */
     protected ?array $refs = null;
 
-    protected DataStoragePropertyDTO|null|bool $primaryProp = false;
+    /**
+     * @var DataStoragePropertyDTO|false|null False until it is searched for.
+     */
+    protected DataStoragePropertyDTO|false|null $primaryProp = false;
 
     protected ?string $tableName = null;
 
@@ -82,7 +85,7 @@ class DataStoragePropertiesHelper implements IDataStoragePropertiesHelper {
             $this->defineProps();
         }
 
-        return $this->props;
+        return $this->props ?? [];
     }
 
     /**
@@ -135,7 +138,7 @@ class DataStoragePropertiesHelper implements IDataStoragePropertiesHelper {
             $this->defineReferences();
         }
 
-        return $this->refs;
+        return $this->refs ?? [];
     }
 
     /**

@@ -41,10 +41,16 @@ class ParsedServiceDTO {
         return $this->arguments;
     }
 
+    /**
+     * @return EventDTO[]
+     */
     public function getEvents(): array {
         return $this->events;
     }
 
+    /**
+     * @return TagDTO[]
+     */
     public function getTags(): array {
         return $this->tags;
     }

@@ -14,28 +14,43 @@ class ConfigDirectoriesProvider implements IConfigDirectoriesProvider {
         ];
     }
 
+    /**
+     * @return string[]
+     */
     protected function getEnabledModuleDirectories(): array {
         $dirs = [];
         $moduleRoot = $this->getModuleRoot();
 
-        $envVariablesProvider = new EnvVariablesProvider();
-        $moduleNames = array_map(
-            static fn(string $moduleSystemName): string => trim($moduleSystemName),
-            explode(
-                ",",
-                $envVariablesProvider->getEnvVariable("MODULES")
-            )
-        );
+        // No modules root: a module name would make a path from the root of the file system ("/config").
+        if ($moduleRoot === '') {
+            return [];
+        }
 
-        foreach ($moduleNames as $moduleName) {
+        foreach ($this->getEnabledModuleNames() as $moduleName) {
             $moduleDir = "$moduleRoot/$moduleName/config";
 
-            if (file_exists($moduleDir) && is_dir($moduleDir)) {
+            if (is_dir($moduleDir)) {
                 $dirs[] = $moduleDir;
             }
         }
 
         return $dirs;
+    }
+
+    /**
+     * @return string[] The names of MODULES (comma-separated): the folder names only, a path ("../other") is skipped.
+     */
+    protected function getEnabledModuleNames(): array {
+        $modules = $this->getModulesVariable();
+
+        return array_values(array_filter(
+            array_map('trim', explode(",", is_scalar($modules) ? (string)$modules : '')),
+            static fn(string $moduleName): bool => (bool)preg_match('/^[A-Za-z0-9_-]+$/', $moduleName)
+        ));
+    }
+
+    protected function getModulesVariable(): mixed {
+        return new EnvVariablesProvider()->getEnvVariable("MODULES");
     }
 
     protected function getModuleRoot(): string {

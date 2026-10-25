@@ -36,7 +36,7 @@ class ConfigHelper {
     /**
      * @throws ServiceDeclaredMoreThanOnceException
      */
-    public function mergeConfigs(...$configs): ConfigDTO {
+    public function mergeConfigs(ConfigDTO ...$configs): ConfigDTO {
         $this->resetConfig();
 
         foreach ($configs as $config) {

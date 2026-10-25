@@ -6,19 +6,22 @@ use Runway\Dumper\IDumper;
 use Runway\Singleton\Container;
 
 if (!function_exists("dump")) {
-    function dump(): void {
+    function dump(mixed ...$vars): void {
+        if (!$vars) {
+            return;
+        }
+
         /** @var IDumper $dumper */
         $dumper = Container::getInstance()->getService(IDumper::class);
 
-        header("Content-Type: text/plain");
-
-        $dumper->export(...func_get_args());
+        // As is in the CLI, HTML-escaped inside <pre> in the browser.
+        $dumper->export(...$vars);
     }
 }
 
 if (!function_exists("dd")) {
-    function dd(): never {
-        dump(...func_get_args());
+    function dd(mixed ...$vars): never {
+        dump(...$vars);
 
         die();
     }

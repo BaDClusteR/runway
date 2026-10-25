@@ -4,20 +4,17 @@ declare(strict_types=1);
 
 namespace Runway\DataStorage\QueryBuilder\Expression;
 
+/**
+ * The parts: the field and its value (SQL, e.g. a query variable ":name").
+ *
+ * @extends AExpressionComposite<array{0: string, 1: string|int|ExpressionMath|ExpressionFunc}>
+ */
 class ExpressionSet extends AExpressionComposite {
-    /**
-     * @var array{0: string, 1:string|int|ExpressionMath|ExpressionFunc}[]
-     */
-    protected array $parts;
-
     protected string $prefix = "SET ";
 
     protected string $postfix = "";
 
-    /**
-     * @param array{0: string, 1:string|int|ExpressionMath|ExpressionFunc} $part
-     */
-    public function convertPart($part): string {
+    protected function convertPart(mixed $part): string {
         return "`{$part[0]}` = {$part[1]}";
     }
 
@@ -25,11 +22,9 @@ class ExpressionSet extends AExpressionComposite {
         string                                   $fieldName,
         string|int|ExpressionMath|ExpressionFunc $value
     ): static {
-        $this->addPart([
+        return $this->addPart([
             $fieldName,
             $value
         ]);
-
-        return $this;
     }
 }

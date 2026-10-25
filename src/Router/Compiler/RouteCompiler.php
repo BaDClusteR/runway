@@ -160,8 +160,8 @@ class RouteCompiler implements IRouteCompiler {
     }
 
     /**
-     * @param array<string|array> $parts        See parseSegment().
-     * @param string[]            $requirements The requirements of the segment placeholders.
+     * @param array<string|array{0: string, 1: string|null}> $parts        See parseSegment().
+     * @param string[]                                      $requirements The requirements of the segment placeholders.
      */
     protected function getSegmentSpecificity(array $parts, array $requirements): int {
         if (!$requirements) {
@@ -185,6 +185,6 @@ class RouteCompiler implements IRouteCompiler {
     }
 
     protected function escapeDelimiter(string $requirement): string {
-        return preg_replace('/(?<!\\\\)' . preg_quote(static::DELIMITER, '/') . '/', '\\' . static::DELIMITER, $requirement);
+        return (string)preg_replace('/(?<!\\\\)' . preg_quote(static::DELIMITER, '/') . '/', '\\' . static::DELIMITER, $requirement);
     }
 }

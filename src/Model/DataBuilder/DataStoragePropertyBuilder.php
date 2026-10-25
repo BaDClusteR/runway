@@ -14,11 +14,12 @@ use Runway\Model\AEntity;
 use Runway\Model\DTO\DataStoragePropertyDTO;
 use Runway\Model\DTO\DataStorageReferenceDTO;
 use ReflectionAttribute;
+use ReflectionNamedType;
 use ReflectionProperty;
 
 class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
     public function buildDataStorageProperty(ReflectionProperty $property): ?DataStoragePropertyDTO {
-        $propType = ($property->getType()?->getName() ?? "");
+        $propType = $this->getPropType($property);
 
         $result = new DataStoragePropertyDTO(
             propType: $propType,
@@ -43,6 +44,15 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
         return $this->isValidDataStorageProp($result)
             ? $result
             : null;
+    }
+
+    /**
+     * @return string The name of a single type (e.g. "DateTime" of "?DateTime"), an empty string for no type or a union.
+     */
+    protected function getPropType(ReflectionProperty $property): string {
+        $type = $property->getType();
+
+        return ($type instanceof ReflectionNamedType) ? $type->getName() : "";
     }
 
     protected function getDefaultDataStorageTypeByPropType(string $propType): string {
@@ -81,7 +91,6 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
         DataStoragePropertyDTO $dto
     ): DataStoragePropertyDTO {
         if ($columnAttr = $this->getFirstAttributeOfType($prop, Column::class)) {
-            /** @var Column $instance */
             $instance = $columnAttr->newInstance();
             $propName = $prop->getName();
 
@@ -91,7 +100,7 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
                 )
                 ->setDataStorageType(
                     $instance->type
-                    ?? $this->getDataStorageTypeByPropType((string)$prop->getType()?->getName())
+                    ?? $this->getDataStorageTypeByPropType($this->getPropType($prop))
                 );
         }
 
@@ -108,7 +117,7 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
         if (
             !str_ends_with($columnName, "_id")
             && $this->isDataStorageEntityType(
-                (string)$prop->getType()?->getName()
+                $this->getPropType($prop)
             )
         ) {
             $columnName .= "_id";
@@ -126,7 +135,7 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
     protected function getDataStorageColumnNameByPropName(string $propName): string {
         // Convert camelCase into snake_case
         return strtolower(
-            preg_replace('/(?<!^)[A-Z]/', '_$0', $propName)
+            (string)preg_replace('/(?<!^)[A-Z]/', '_$0', $propName)
         );
     }
 
@@ -171,6 +180,13 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
         return null;
     }
 
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $attributeFQN
+     *
+     * @return ReflectionAttribute<T>|null
+     */
     protected function getFirstAttributeOfType(ReflectionProperty $prop, string $attributeFQN): ?ReflectionAttribute {
         return $prop->getAttributes($attributeFQN)[0] ?? null;
     }
@@ -182,11 +198,6 @@ class DataStoragePropertyBuilder implements IDataStoragePropertyBuilder {
     }
 
     public function buildTableName(ReflectionProperty $property): ?string {
-        /** @var Table $instance */
-        $instance = ($tableNameAttr = $this->getFirstAttributeOfType($property, Table::class))
-            ? $tableNameAttr->newInstance()
-            : null;
-
-        return $instance?->tableName;
+        return $this->getFirstAttributeOfType($property, Table::class)?->newInstance()->tableName;
     }
 }

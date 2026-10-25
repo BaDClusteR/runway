@@ -6,9 +6,8 @@ namespace Runway\Request\Parameters\DTO;
 
 readonly class CookieDTO {
     /**
-     * @param int    $expires  Unix timestamp, 0 for a session cookie (a past one deletes the cookie).
-     * @param string $sameSite "Strict", "Lax" or "None": whether the browser sends the cookie with the requests of
-     *                         other sites.
+     * @param int                   $expires  Unix timestamp, 0 for a session cookie (a past one deletes the cookie).
+     * @param 'Strict'|'Lax'|'None' $sameSite Whether the browser sends the cookie with the requests of other sites.
      */
     public function __construct(
         private string $name,
@@ -49,6 +48,9 @@ readonly class CookieDTO {
         return $this->isHttponly;
     }
 
+    /**
+     * @return 'Strict'|'Lax'|'None'
+     */
     public function getSameSite(): string {
         return $this->sameSite;
     }

@@ -18,7 +18,7 @@ readonly class PDOErrorEnvelope extends DBErrorEnvelope {
         parent::__construct($code, "Error while executing '$query'. $message", $query, $sqlStateErrorCode);
     }
 
-    public function getConnection(): PDO {
+    public function getConnection(): ?PDO {
         return $this->connection;
     }
 }

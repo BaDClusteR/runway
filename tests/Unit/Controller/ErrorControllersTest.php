@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Runway\Tests\Controller;
+namespace Runway\Tests\Unit\Controller;
 
 use PHPUnit\Framework\TestCase;
 use Runway\Controller\ErrorController;

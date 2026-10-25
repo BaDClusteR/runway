@@ -5,9 +5,6 @@ services:
   Runway\Model\Helper\IDataStoragePropertiesHelper:
     class: Runway\Model\Helper\DataStoragePropertiesHelper
 
-  Runway\Model\Converter\IDataStoragePropertyBuilder:
-    class: Runway\Model\Converter\DataStoragePropertyBuilder
-
   Runway\Model\Converter\IDataStoragePropertiesConverter:
     class: Runway\Model\Converter\DataStoragePropertiesConverter
 

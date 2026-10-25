@@ -18,15 +18,15 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
     ) {}
 
     public function getMethod(): string {
-        return $_SERVER['REQUEST_METHOD'] ?? '';
+        return $this->getServerString('REQUEST_METHOD');
     }
 
     public function getHost(): string {
-        return $_SERVER['HTTP_HOST'] ?? '';
+        return $this->getServerString('HTTP_HOST');
     }
 
     public function getPort(): int {
-        return (int)($_SERVER['SERVER_PORT'] ?? 0);
+        return (int)$this->getServerString('SERVER_PORT');
     }
 
     public function getIpAddress(): string {
@@ -34,7 +34,7 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
             return "127.0.0.1";
         }
 
-        $remoteAddress = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $remoteAddress = $this->getServerString('REMOTE_ADDR');
         $trustedProxies = $this->getTrustedProxies();
 
         // Anyone can send X-Forwarded-For: it's trusted only if the request came from a known proxy.
@@ -44,7 +44,7 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
 
         // "client, proxy1, proxy2": every proxy appends the address it got the request from, so the client is the
         // last address that is not a trusted proxy (the ones before it could be forged by the client).
-        $forwardedFor = array_map('trim', explode(',', (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')));
+        $forwardedFor = array_map('trim', explode(',', $this->getServerString('HTTP_X_FORWARDED_FOR')));
 
         foreach (array_reverse($forwardedFor) as $address) {
             if ($address !== '' && !in_array($address, $trustedProxies, true)) {
@@ -65,6 +65,12 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
         ));
     }
 
+    protected function getServerString(string $key): string {
+        $value = $_SERVER[$key] ?? '';
+
+        return is_scalar($value) ? (string)$value : '';
+    }
+
     protected function isCLI(): bool {
         return PHP_SAPI === 'cli';
     }
@@ -79,29 +85,29 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
     }
 
     public function getRequestUri(): string {
-        return (string)($_SERVER['REQUEST_URI'] ?? '');
+        return $this->getServerString('REQUEST_URI');
     }
 
     public function getBody(): string {
-        return file_get_contents('php://input');
+        return (string)@file_get_contents('php://input');
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getGetParameters(): array {
         return $_GET;
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getPostParameters(): array {
         return $_POST;
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getServerParameters(): array {
         return $_SERVER;
@@ -114,11 +120,11 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
         $result = [];
 
         if (!function_exists('getallheaders')) {
-            // CLI SAPI: собираем заголовки из $_SERVER (их там обычно нет, но на всякий случай)
+            // CLI SAPI: the headers of $_SERVER (usually there are none)
             foreach ($_SERVER as $name => $value) {
-                if (str_starts_with($name, 'HTTP_')) {
+                if (is_string($name) && str_starts_with($name, 'HTTP_') && is_scalar($value)) {
                     $header = str_replace('_', '-', substr($name, 5));
-                    $result[strtolower($header)] = $value;
+                    $result[strtolower($header)] = (string)$value;
                 }
             }
 
@@ -126,14 +132,16 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
         }
 
         foreach (getallheaders() as $name => $value) {
-            $result[strtolower($name)] = $value;
+            if (is_scalar($value)) {
+                $result[strtolower((string)$name)] = (string)$value;
+            }
         }
 
         return $result;
     }
 
     /**
-     * @return array<string, string>
+     * @return array<mixed> A value is an array for "name[key]=value".
      */
     public function getCookies(): array {
         return $_COOKIE;
@@ -143,7 +151,11 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
      * @return string[]
      */
     public function getArguments(): array {
-        return $_SERVER['argv'] ?? [];
+        $arguments = $_SERVER['argv'] ?? [];
+
+        return is_array($arguments)
+            ? array_values(array_filter($arguments, 'is_string'))
+            : [];
     }
 
     /**
@@ -156,7 +168,9 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
         $result = [];
 
         foreach ($_FILES as $field => $file) {
-            $this->addFiles($result, (string)$field, $file);
+            if (is_array($file)) {
+                $this->addFiles($result, (string)$field, $file);
+            }
         }
 
         return $result;
@@ -166,6 +180,7 @@ readonly class RequestParametersProvider implements IRequestParametersProvider {
      * PHP gives the files of a field as separate arrays of their names, sizes and so on.
      *
      * @param array<string, FileDTO> $result
+     * @param array<mixed>           $file
      */
     private function addFiles(array &$result, string $field, array $file): void {
         if (!is_array($file['name'] ?? null)) {

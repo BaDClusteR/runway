@@ -16,8 +16,8 @@ class ComparisonOperatorConverter implements IComparisonOperatorConverter {
             ExpressionComparisonOperatorsEnum::LESS_THAN        => "<",
             ExpressionComparisonOperatorsEnum::EQUAL            => "=",
             ExpressionComparisonOperatorsEnum::NOT_EQUAL        => "<>",
-            ExpressionComparisonOperatorsEnum::LIKE             => "IS LIKE",
-            ExpressionComparisonOperatorsEnum::NOT_LIKE         => "IS NOT LIKE",
+            ExpressionComparisonOperatorsEnum::LIKE             => "LIKE",
+            ExpressionComparisonOperatorsEnum::NOT_LIKE         => "NOT LIKE",
             ExpressionComparisonOperatorsEnum::IN               => "IN",
         };
     }

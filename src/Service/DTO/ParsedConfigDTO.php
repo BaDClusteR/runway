@@ -32,10 +32,16 @@ class ParsedConfigDTO {
         return $this;
     }
 
+    /**
+     * @return RouteDTO[]
+     */
     public function getRoutes(): array {
         return $this->routes;
     }
 
+    /**
+     * @param RouteDTO[] $routes
+     */
     public function setRoutes(array $routes): static {
         $this->routes = $routes;
 

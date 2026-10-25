@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Runway\DataStorage\Event\PDO;
 
 readonly class PDONotConnectedEnvelope extends PDOErrorEnvelope {
+    /**
+     * @param array<mixed> $vars
+     */
     public function __construct(
         private string $query,
         private array  $vars,
@@ -17,6 +20,9 @@ readonly class PDONotConnectedEnvelope extends PDOErrorEnvelope {
         return $this->query;
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function getVars(): array {
         return $this->vars;
     }

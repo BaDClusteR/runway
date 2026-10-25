@@ -31,34 +31,58 @@ class Logger implements ILogger {
         return $this;
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function debug(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::DEBUG, $context);
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function info(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::INFO, $context);
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function deprecated(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::DEPRECATED, $context);
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function warning(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::WARNING, $context);
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function error(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::ERROR, $context);
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function critical(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::CRITICAL, $context);
     }
 
+    /**
+     * @param array<mixed> $context Encoded as JSON.
+     */
     public function emergency(string $message, array $context = []): void {
         $this->record($message, LogLevelEnum::EMERGENCY, $context);
     }
 
+    /**
+     * @param array<mixed> $context
+     */
     protected function record(string $message, LogLevelEnum $logLevelEnum, array $context): void {
         if ($this->getLogLevelAsInt($logLevelEnum) < $this->getLogLevelAsInt($this->logLevel)) {
             return;
@@ -118,6 +142,9 @@ class Logger implements ILogger {
         };
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function getRecordExtraInfo(): array {
         $now = time();
         $request = $this->getRequest();
@@ -141,7 +168,8 @@ class Logger implements ILogger {
     }
 
     protected function getLogLevelFromEnvVar(): LogLevelEnum {
-        $level = (int)$this->envVarProvider->getEnvVariable("LOG_LEVEL");
+        $level = $this->envVarProvider->getEnvVariable("LOG_LEVEL");
+        $level = is_numeric($level) ? (int)$level : 0;
 
         return match ($level) {
             1       => LogLevelEnum::INFO,
@@ -166,6 +194,9 @@ class Logger implements ILogger {
         };
     }
 
+    /**
+     * @return array<array<string, mixed>>
+     */
     protected function getStackTrace(): array {
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
@@ -185,8 +216,8 @@ class Logger implements ILogger {
     }
 
     protected function getLogRootDir(): string {
-        return defined("PROJECT_ROOT")
-            ? constant("PROJECT_ROOT")
-            : RUNWAY_ROOT;
+        $projectRoot = defined("PROJECT_ROOT") ? constant("PROJECT_ROOT") : null;
+
+        return is_string($projectRoot) ? $projectRoot : RUNWAY_ROOT;
     }
 }

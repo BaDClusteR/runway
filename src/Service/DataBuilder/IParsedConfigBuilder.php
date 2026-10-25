@@ -8,6 +8,9 @@ use Runway\Service\DTO\ParsedServiceDTO;
 use Runway\Service\DTO\RouteDTO;
 
 interface IParsedConfigBuilder {
+    /**
+     * @param array<mixed> $rawData The parsed config file.
+     */
     public function setRawData(array $rawData): static;
 
     public function setFilePath(string $filepath): static;

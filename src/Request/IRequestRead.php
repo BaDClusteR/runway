@@ -31,6 +31,9 @@ interface IRequestRead {
 
     public function getServerParameter(string $parameterName): IRequestParameterValue;
 
+    /**
+     * @return array<mixed>
+     */
     public function getServerParameters(): array;
 
     public function getHeader(string $headerName): ?string;

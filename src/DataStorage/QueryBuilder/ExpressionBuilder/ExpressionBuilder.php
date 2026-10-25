@@ -19,14 +19,14 @@ class ExpressionBuilder implements IExpressionBuilder {
     /**
      * @throws ExpressionTypeIsNotAllowed
      */
-    public function and(...$args): ExpressionAnd {
+    public function and(mixed ...$args): ExpressionAnd {
         return new ExpressionAnd(...$args);
     }
 
     /**
      * @throws ExpressionTypeIsNotAllowed
      */
-    public function or(...$args): ExpressionOr {
+    public function or(mixed ...$args): ExpressionOr {
         return new ExpressionOr(...$args);
     }
 
@@ -113,7 +113,7 @@ class ExpressionBuilder implements IExpressionBuilder {
         return new ExpressionIsNotNull($value);
     }
 
-    public function func(string $funcName, ...$args): ExpressionFunc {
+    public function func(string $funcName, mixed ...$args): ExpressionFunc {
         return new ExpressionFunc($funcName, $args);
     }
 }

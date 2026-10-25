@@ -15,25 +15,30 @@ use Runway\Service\DTO\RouteDTO;
 use Runway\Service\DTO\ServiceArgumentDTO;
 use Runway\Service\DTO\ServiceDTO;
 use Runway\Service\DTO\TagDTO;
+use Runway\Service\Exception\ConfigurationException;
 use Runway\Service\Exception\Route\RouteException;
 
 class ParsedConfigBuilder implements IParsedConfigBuilder {
+    /**
+     * @var array<mixed>
+     */
     protected array $rawData = [];
 
     protected string $filePath = '';
 
     /**
+     * @param array<mixed>|null $rawData
+     *
      * @throws EventException
      */
     public function buildParsedService(string $serviceName, ?array $rawData): ParsedServiceDTO {
-        $serviceFQN = ($rawData['class'] ?? null)
-            ? (string)$rawData['class']
-            : $serviceName;
+        $rawData ??= [];
+        $serviceFQN = $this->getString($rawData, 'class') ?: $serviceName;
 
         return new ParsedServiceDTO(
             name: $serviceName,
             class: $serviceFQN,
-            decorates: (string)($rawData['decorates'] ?? null),
+            decorates: $this->getString($rawData, 'decorates'),
             arguments: $this->buildServiceArguments(
                 (array)($rawData['arguments'] ?? [])
             ),
@@ -43,7 +48,8 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
                 $serviceFQN
             ),
             tags: $this->buildServiceTags(
-                (array)($rawData['tags'] ?? [])
+                (array)($rawData['tags'] ?? []),
+                $serviceName
             ),
             filePath: $this->filePath
         );
@@ -70,66 +76,95 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
         $routes = [];
 
         foreach ((array)($this->rawData['routes'] ?? []) as $routeName => $rawData) {
-            $routes[] = $this->buildRoute($routeName, $rawData);
+            if (!is_array($rawData)) {
+                $this->throwRouteException("Route \"$routeName\" is not a map of its options");
+            }
+
+            $routes[] = $this->buildRoute((string)$routeName, $rawData);
         }
 
         return $routes;
     }
 
     /**
+     * @param array<mixed> $rawData
+     *
      * @throws RouteException
      */
     protected function buildRoute(string $routeName, array $rawData): RouteDTO {
-        if (empty($rawData['path'])) {
+        $path = $this->getString($rawData, 'path');
+
+        if ($path === '') {
             $this->throwRouteException("Empty route path");
         }
 
         [$controller, $method] = $this->getRouteControllerAndMethod($rawData);
+        $priority = $rawData['priority'] ?? 0;
 
         return new RouteDTO(
             name: $routeName,
-            path: (string)$rawData['path'],
+            path: $path,
             controller: $controller,
             method: $method,
-            priority: (int)($rawData['priority'] ?? 0),
-            description: (string)($rawData['description'] ?? ''),
+            priority: is_numeric($priority) ? (int)$priority : 0,
+            description: $this->getString($rawData, 'description'),
             filePath: $this->filePath,
             methods: $this->getRouteMethods($rawData),
-            requirements: array_map('strval', (array)($rawData['requirements'] ?? []))
+            requirements: $this->getRouteRequirements($rawData)
         );
     }
 
     /**
      * "methods" can be a list ([GET, POST]) or a single method (GET).
      *
+     * @param array<mixed> $rawData
+     *
      * @return string[]
      */
     protected function getRouteMethods(array $rawData): array {
         return array_values(array_unique(array_map(
-            static fn(mixed $method): string => strtoupper((string)$method),
+            static fn(mixed $method): string => strtoupper(is_scalar($method) ? (string)$method : ''),
             (array)($rawData['methods'] ?? [])
         )));
     }
 
     /**
+     * @param array<mixed> $rawData
+     *
+     * @return array<string, string> Placeholder name => regexp.
+     */
+    protected function getRouteRequirements(array $rawData): array {
+        $requirements = [];
+
+        foreach ((array)($rawData['requirements'] ?? []) as $name => $requirement) {
+            $requirements[(string)$name] = is_scalar($requirement) ? (string)$requirement : '';
+        }
+
+        return $requirements;
+    }
+
+    /**
+     * @param array<mixed> $rawData
+     *
      * @return array{0: string, 1: string}
      *
      * @throws RouteException
      */
     protected function getRouteControllerAndMethod(array $rawData): array {
-        $controller = (string)($rawData['controller'] ?? '');
+        $controller = $this->getString($rawData, 'controller');
 
-        if (empty($controller)) {
+        if ($controller === '') {
             $this->throwRouteException("Empty route controller");
         }
 
-        [$controller, $method] = explode('::', $controller, 2);
+        // "Controller" without "::method" is an empty method.
+        [$controller, $method] = explode("::", $controller, 2) + [1 => ""];
 
-        if (empty($controller)) {
+        if ($controller === '') {
             $this->throwRouteException("Empty route controller");
         }
 
-        if (empty($method)) {
+        if ($method === '') {
             $this->throwRouteException("Empty route method");
         }
 
@@ -165,7 +200,7 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
         $result = [];
 
         foreach ((array)($this->rawData['parameters'] ?? []) as $name => $value) {
-            $result[] = $this->buildParameter($name, $value);
+            $result[] = $this->buildParameter((string)$name, $value);
         }
 
         return $result;
@@ -187,14 +222,17 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
         $result = [];
 
         foreach ((array)($this->rawData['services'] ?? []) as $serviceName => $serviceRawData) {
-            $result[] = $this->buildParsedService($serviceName, $serviceRawData);
+            $result[] = $this->buildParsedService(
+                (string)$serviceName,
+                is_array($serviceRawData) ? $serviceRawData : null
+            );
         }
 
         return $result;
     }
 
     /**
-     * @param array $argumentsRawData
+     * @param array<mixed> $argumentsRawData
      *
      * @return ServiceArgumentDTO[]
      */
@@ -202,23 +240,29 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
         $result = [];
 
         foreach ($argumentsRawData as $name => $value) {
-            $result[] = new ServiceArgumentDTO($name, $value);
+            $result[] = new ServiceArgumentDTO((string)$name, $value);
         }
 
         return $result;
     }
 
     /**
+     * @param array<mixed> $eventsRawData
+     *
+     * @return EventDTO[]
+     *
      * @throws EventException
      */
     protected function buildServiceEvents(array $eventsRawData, string $serviceName, string $serviceFQN): array {
         $result = [];
 
         foreach ($eventsRawData as $eventData) {
+            $eventData = is_array($eventData) ? $eventData : [];
+
             $event = new EventDTO(
-                (string)($eventData['event'] ?? ''),
+                $this->getString($eventData, 'event'),
                 $serviceName,
-                (string)($eventData['method'] ?? '')
+                $this->getString($eventData, 'method')
             );
 
             $this->validateEvent($event, $serviceName, $serviceFQN);
@@ -254,18 +298,52 @@ class ParsedConfigBuilder implements IParsedConfigBuilder {
         }
     }
 
-    protected function buildServiceTags(array $tagsRawData): array {
-        return array_map(
-            static function (array $tagRawData): TagDTO {
-                $extra = $tagRawData;
-                unset($extra['name']);
+    /**
+     * A tag is either a map with the name and the extra options ("- name: router.route_provider") or just the name
+     * ("- router.route_provider").
+     *
+     * @param array<mixed> $tagsRawData
+     *
+     * @return TagDTO[]
+     */
+    protected function buildServiceTags(array $tagsRawData, string $serviceName): array {
+        return array_values(array_map(
+            function (mixed $tagRawData) use ($serviceName): TagDTO {
+                if (is_string($tagRawData)) {
+                    $tagRawData = ['name' => $tagRawData];
+                }
+
+                $name = is_array($tagRawData) ? $this->getString($tagRawData, 'name') : '';
+
+                if (!is_array($tagRawData) || $name === '') {
+                    throw new ConfigurationException($this->filePath, "A tag of service $serviceName has no name.");
+                }
+
+                $extra = [];
+
+                foreach ($tagRawData as $key => $value) {
+                    if ($key !== 'name') {
+                        $extra[(string)$key] = $value;
+                    }
+                }
 
                 return new TagDTO(
-                    name: $tagRawData['name'],
+                    name: $name,
                     extra: $extra
                 );
             },
             $tagsRawData
-        );
+        ));
+    }
+
+    /**
+     * @param array<mixed> $rawData
+     *
+     * @return string The value of a scalar option, an empty string otherwise.
+     */
+    protected function getString(array $rawData, string $key): string {
+        $value = $rawData[$key] ?? '';
+
+        return is_scalar($value) ? (string)$value : '';
     }
 }

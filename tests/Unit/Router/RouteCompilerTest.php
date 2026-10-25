@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Runway\Tests\Router;
+namespace Runway\Tests\Unit\Router;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -83,6 +83,9 @@ class RouteCompilerTest extends TestCase {
         self::assertSame($expected, new RouteCompiler()->compile($this->route($path))->specificity);
     }
 
+    /**
+     * @return array<string, array{string, int[]}>
+     */
     public static function specificityProvider(): array {
         return [
             'static'      => ['/contacts/search', [3, 3]],
@@ -92,6 +95,9 @@ class RouteCompilerTest extends TestCase {
         ];
     }
 
+    /**
+     * @param array<string, string> $requirements
+     */
     #[DataProvider('invalidPathProvider')]
     public function testInvalidPath(string $path, array $requirements = []): void {
         $this->expectException(RouteException::class);
@@ -99,6 +105,9 @@ class RouteCompilerTest extends TestCase {
         new RouteCompiler()->compile($this->route($path, requirements: $requirements));
     }
 
+    /**
+     * @return array<string, array{0: string, 1?: array<string, string>}>
+     */
     public static function invalidPathProvider(): array {
         return [
             'not closed'          => ['/chats/{chatId'],

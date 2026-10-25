@@ -16,12 +16,12 @@ interface IExpressionBuilder {
     /**
      * @throws ExpressionTypeIsNotAllowed
      */
-    public function and(...$args): ExpressionAnd;
+    public function and(mixed ...$args): ExpressionAnd;
 
     /**
      * @throws ExpressionTypeIsNotAllowed
      */
-    public function or(...$args): ExpressionOr;
+    public function or(mixed ...$args): ExpressionOr;
 
     public function eq(
         string|int|bool|AExpressionBoolean|ExpressionFunc|ExpressionMath $leftPart,
@@ -53,6 +53,10 @@ interface IExpressionBuilder {
         string|int|bool|AExpressionBoolean|ExpressionFunc|ExpressionMath $rightPart
     ): ExpressionComparison;
 
+    /**
+     * @param string|ExpressionFunc|ExpressionMath|string[] $rightPart The query variables (e.g. [":id_0", ":id_1"]) or a
+     *                                                       subquery.
+     */
     public function in(
         string|ExpressionFunc|ExpressionMath $leftPart,
         string|ExpressionFunc|ExpressionMath|array $rightPart
@@ -66,5 +70,5 @@ interface IExpressionBuilder {
         string|AExpressionBoolean|ExpressionFunc|ExpressionMath $value,
     ): ExpressionIsNotNull;
 
-    public function func(string $funcName, ...$args): ExpressionFunc;
+    public function func(string $funcName, mixed ...$args): ExpressionFunc;
 }

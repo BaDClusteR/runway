@@ -21,17 +21,17 @@ interface IRequest extends IRequestRead {
     public function setMethod(string $method): static;
 
     /**
-     * @param array<string, mixed> $getParameters
+     * @param array<mixed> $getParameters
      */
     public function setGetParameters(array $getParameters): static;
 
     /**
-     * @param array<string, mixed> $postParameters
+     * @param array<mixed> $postParameters
      */
     public function setPostParameters(array $postParameters): static;
 
     /**
-     * @param array<string, mixed> $serverParameters
+     * @param array<mixed> $serverParameters
      */
     public function setServerParameters(array $serverParameters): static;
 
@@ -41,7 +41,7 @@ interface IRequest extends IRequestRead {
     public function setHeaders(array $headers): static;
 
     /**
-     * @param array<string, string> $cookies
+     * @param array<mixed> $cookies
      */
     public function setCookies(array $cookies): static;
 

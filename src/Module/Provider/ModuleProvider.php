@@ -7,6 +7,7 @@ namespace Runway\Module\Provider;
 use Runway\Env\Provider\IEnvVariablesProvider;
 use Runway\Module\DTO\ModuleDTO;
 use Runway\Module\Parser\IModuleConfigParser;
+use Runway\Service\Provider\PathsProvider;
 
 class ModuleProvider implements IModuleProvider {
     /**
@@ -23,10 +24,10 @@ class ModuleProvider implements IModuleProvider {
      * @return ModuleDTO[]
      */
     public function getEnabledModules(): array {
-        return array_filter(
+        return array_values(array_filter(
             $this->getAllModules(),
             static fn(ModuleDTO $module): bool => $module->isEnabled
-        );
+        ));
     }
 
     /**
@@ -37,11 +38,11 @@ class ModuleProvider implements IModuleProvider {
         $this->enabledModuleNames = $this->getEnabledModuleNamesFromEnvVar();
         $modulesRoot = $this->getModulesRootPath();
 
-        if (!$modulesRoot) {
+        if (!$modulesRoot || !is_dir($modulesRoot)) {
             return [];
         }
 
-        foreach (scandir($modulesRoot) as $moduleDirRecord) {
+        foreach (scandir($modulesRoot) ?: [] as $moduleDirRecord) {
             if (
                 !in_array($moduleDirRecord, ['.', '..'], true)
                 && is_dir("$modulesRoot/$moduleDirRecord")
@@ -50,7 +51,7 @@ class ModuleProvider implements IModuleProvider {
             }
         }
 
-        return array_filter($modules);
+        return array_values(array_filter($modules));
     }
 
     public function getModule(string $systemName): ?ModuleDTO {
@@ -74,10 +75,10 @@ class ModuleProvider implements IModuleProvider {
     protected function getEnabledModuleNamesFromEnvVar(): array {
         $rawConfigValue = $this->envVariablesProvider->getEnvVariable("MODULES");
 
-        return array_map(
-            static fn(string $moduleName): string => trim($moduleName),
-            explode(",", $rawConfigValue),
-        );
+        return array_values(array_filter(
+            array_map("trim", explode(",", is_scalar($rawConfigValue) ? (string)$rawConfigValue : "")),
+            static fn(string $moduleName): bool => $moduleName !== ""
+        ));
     }
 
     protected function getModuleDTOByFolderName(string $moduleFolder): ?ModuleDTO {
@@ -95,9 +96,10 @@ class ModuleProvider implements IModuleProvider {
         return null;
     }
 
+    /**
+     * The modules directory of PathsProvider (MODULE_ROOT by default), as for the configs of the modules.
+     */
     public function getModulesRootPath(): string {
-        return defined("MODULE_ROOT")
-            ? constant("MODULE_ROOT")
-            : "";
+        return PathsProvider::getInstance()->getModulesDirectory();
     }
 }

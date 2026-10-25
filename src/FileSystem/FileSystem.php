@@ -35,6 +35,8 @@ class FileSystem implements IFileSystem {
     }
 
     /**
+     * @return resource
+     *
      * @throws FileSystemException
      */
     protected function fopen(string $filePath, string $mode) {
@@ -42,9 +44,10 @@ class FileSystem implements IFileSystem {
             dirname($filePath)
         );
 
-        $f = fopen($filePath, $mode);
+        // The reason is in the exception, not in a warning.
+        $f = @fopen($filePath, $mode);
 
-        if (!$f) {
+        if ($f === false) {
             throw new CannotOpenFileException($filePath);
         }
 
@@ -52,10 +55,16 @@ class FileSystem implements IFileSystem {
     }
 
     /**
+     * @param resource $f
+     *
      * @throws CannotWriteToFileException
      */
     protected function fwrite($f, string $filePath, mixed $data): void {
-        if (fwrite($f, $data) === false) {
+        if (!is_scalar($data) && !$data instanceof \Stringable) {
+            throw new CannotWriteToFileException($filePath);
+        }
+
+        if (fwrite($f, (string)$data) === false) {
             throw new CannotWriteToFileException($filePath);
         }
     }
@@ -68,7 +77,7 @@ class FileSystem implements IFileSystem {
             return;
         }
 
-        if (!mkdir($directory, $mode, true) && !is_dir($directory)) {
+        if (!@mkdir($directory, $mode, true) && !is_dir($directory)) {
             throw new CannotCreateDirectoryException($directory);
         }
     }
@@ -89,7 +98,7 @@ class FileSystem implements IFileSystem {
             dirname($dstPath)
         );
 
-        $copyResult = copy($srcPath, $dstPath);
+        $copyResult = @copy($srcPath, $dstPath);
 
         if (!$copyResult) {
             throw new CannotCopyException($srcPath, $dstPath);
@@ -108,7 +117,7 @@ class FileSystem implements IFileSystem {
         }
 
         if (!is_readable($filePath)) {
-            throw new CannotReadFileException("Cannot read $filePath.");
+            throw new CannotReadFileException($filePath);
         }
     }
 
@@ -182,7 +191,7 @@ class FileSystem implements IFileSystem {
      */
     public function remove(string $fullPath): void
     {
-        if (file_exists($fullPath) && !unlink($fullPath)) {
+        if (file_exists($fullPath) && !@unlink($fullPath)) {
             throw new CannotDeleteFileException($fullPath);
         }
     }

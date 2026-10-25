@@ -1,13 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Runway\Dumper;
 
-use Runway\Request\IRequest;
 use Runway\Request\IRequestRead;
 use Runway\Singleton;
 use JsonException;
-use Runway\Singleton\Container;
 
+/**
+ * Debug output of variables: as is in the CLI, inside <pre> (HTML-escaped: the values can contain the user input) in
+ * the browser.
+ */
 class Dumper extends Singleton implements IDumper {
     public function __construct(
         protected IRequestRead $request
@@ -15,34 +19,26 @@ class Dumper extends Singleton implements IDumper {
 
     protected ?bool $isCLI = null;
 
-    public function dump($var, ...$vars): void {
-        if ($this->isCLI()) {
-            echo "<pre>";
-        }
-
+    public function dump(mixed $var, mixed ...$vars): void {
+        ob_start();
         var_dump($var, ...$vars);
 
-        if ($this->isCLI()) {
-            echo "</pre>";
-        }
+        $this->output((string)ob_get_clean());
     }
 
-    public function print($var, ...$vars): void {
-        if ($this->isCLI()) {
-            echo "<pre>";
-        }
-
-        print_r($var, ...$vars);
-
-        if ($this->isCLI()) {
-            echo "</pre>";
-        }
+    public function print(mixed $var, mixed ...$vars): void {
+        $this->output(
+            implode("\n", array_map(
+                static fn(mixed $arg): string => print_r($arg, true),
+                [$var, ...$vars]
+            ))
+        );
     }
 
-    public function json($var, ...$vars): void {
+    public function json(mixed $var, mixed ...$vars): void {
         $result = "";
 
-        foreach (func_get_args() as $arg) {
+        foreach ([$var, ...$vars] as $arg) {
             try {
                 $json = json_encode($arg, JSON_THROW_ON_ERROR);
             } catch (JsonException) {
@@ -52,25 +48,23 @@ class Dumper extends Singleton implements IDumper {
             $result .= ($result ? "\n\n" : "") . $json;
         }
 
-        if ($this->isCLI()) {
-            header("Content-type: application/json");
-            die($result);
-        }
-
-        echo "<pre>$result</pre>";
+        $this->output($result);
     }
 
-    public function export($var, ...$vars): void {
+    public function export(mixed $var, mixed ...$vars): void {
         $result = "";
 
-        foreach (func_get_args() as $arg) {
+        foreach ([$var, ...$vars] as $arg) {
             $result .= ($result ? "\n\n" : "") . var_export($arg, true);
         }
 
-        echo $this->isCLI()
-            ? $result
-            : "<pre>$result</pre>";
+        $this->output($result);
+    }
 
+    protected function output(string $text): void {
+        echo $this->isCLI()
+            ? $text
+            : "<pre>" . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE) . "</pre>";
     }
 
     protected function isCLI(): bool {

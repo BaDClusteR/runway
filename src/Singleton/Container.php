@@ -24,8 +24,7 @@ use Runway\Service\Provider\ConfigProvider;
 use Runway\Service\Provider\IConfigProvider;
 use Runway\Singleton;
 use ReflectionClass;
-use ReflectionException;
-use ReflectionParameter;
+use ReflectionNamedType;
 use Runway\Singleton\DTO\DependencyChainLinkDTO;
 
 class Container extends Singleton implements IContainer {
@@ -62,10 +61,24 @@ class Container extends Singleton implements IContainer {
         }
     }
 
+    /**
+     * @template T of object
+     *
+     * @param class-string<T>|string $serviceName
+     *
+     * @return ($serviceName is class-string<T> ? T : mixed)
+     */
     public function getService(string $serviceName, mixed $inner = null): mixed {
         return $this->doGetService($serviceName, $inner, true);
     }
 
+    /**
+     * @template T of object
+     *
+     * @param class-string<T>|string $serviceName
+     *
+     * @return ($serviceName is class-string<T> ? T|null : mixed)
+     */
     public function tryGetService(string $serviceName, mixed $inner = null): mixed {
         try {
             return $this->getService($serviceName, $inner);
@@ -83,12 +96,14 @@ class Container extends Singleton implements IContainer {
      */
     public function getDataStorageDriver(): IDataStorageDriver {
         if (!$this->dataStorageDriver) {
-            $this->dataStorageDriver = static::getInstance()->getService(IDataStorageDriver::class);
+            $dataStorageDriver = static::getInstance()->getService(IDataStorageDriver::class);
 
             // The driver reads the options via the env variables provider service, so its decorators are applied.
-            $this->dataStorageDriver->connect(
-                $this->dataStorageDriver->getConnectOptions()
+            $dataStorageDriver->connect(
+                $dataStorageDriver->getConnectOptions()
             );
+
+            $this->dataStorageDriver = $dataStorageDriver;
         }
 
         return $this->dataStorageDriver;
@@ -99,9 +114,7 @@ class Container extends Singleton implements IContainer {
      */
     public function getQueryBuilder(): IQueryBuilder {
         if (!$this->queryBuilder) {
-            $this->queryBuilder = $this->getService(IQueryBuilder::class);
-
-            $this->queryBuilder->setDataStorageDriver(
+            $this->queryBuilder = $this->getService(IQueryBuilder::class)->setDataStorageDriver(
                 $this->getDataStorageDriver()
             );
         }
@@ -110,6 +123,7 @@ class Container extends Singleton implements IContainer {
     }
 
     public function getServicesByTag(string $tag, array $extraFilters = []): array {
+        /** @var array<string, array{service: mixed, priority: int}> $services */
         $services = [];
 
         foreach ($this->services as $serviceDTO) {
@@ -117,48 +131,46 @@ class Container extends Singleton implements IContainer {
 
             foreach ($serviceDTO->getTags() as $tagDTO) {
                 if (
-                    empty($services[$serviceName])
+                    !isset($services[$serviceName])
                     && $this->isTagSuitable($tagDTO, $tag, $extraFilters)
                 ) {
-                    $services[$serviceName]['service'] = $this->getService($serviceName);
-                    $services[$serviceName]['priority'] = (int)($tagDTO->getExtra()['priority'] ?? 0);
+                    $priority = $tagDTO->getExtra()['priority'] ?? 0;
+
+                    $services[$serviceName] = [
+                        'service'  => $this->getService($serviceName),
+                        'priority' => is_numeric($priority) ? (int)$priority : 0,
+                    ];
                 }
             }
         }
 
+        // The sorting is stable: the services with the same priority keep the declaration order.
         usort(
             $services,
-            function ($a, $b) {
-                return (int)($a['priority'] ?? 0) <=> (int)($b['priority'] ?? 0);
-            }
+            static fn(array $a, array $b): int => $a['priority'] <=> $b['priority']
         );
 
         return array_map(
-            static fn ($service) => ($service['service'] ?? null),
+            static fn(array $service): mixed => $service['service'],
             $services
         );
     }
 
+    /**
+     * @param array<string, mixed> $extra
+     */
     protected function isTagSuitable(TagDTO $tag, string $tagName, array $extra): bool {
         if ($tag->getName() !== $tagName) {
             return false;
         }
 
-        if ($extra) {
-            $tagExtra = $tag->getExtra();
+        $tagExtra = $tag->getExtra();
 
-            if (
-                array_any(
-                    $extra,
-                    static fn($value, $key) => !array_key_exists($key, $tagExtra)
-                                               || $tagExtra[$key] !== $value
-                )
-            ) {
-                return false;
-            }
-        }
-
-        return true;
+        return !array_any(
+            $extra,
+            static fn(mixed $value, string $key): bool => !array_key_exists($key, $tagExtra)
+                                                          || $tagExtra[$key] !== $value
+        );
     }
 
     protected function doGetService(
@@ -169,24 +181,26 @@ class Container extends Singleton implements IContainer {
         $this->checkForCircularDependency($serviceName);
 
         $this->addDependencyChainLink($serviceName);
-        $serviceDTO = $this->getServiceDTOByServiceName($serviceName);
 
-        $this->validateServiceCall($serviceDTO, $isPublic);
+        // The link is removed even if the service cannot be created: otherwise the next request of the service (e.g.
+        // after tryGetService()) would be taken for a circular dependency.
+        try {
+            $serviceDTO = $this->getServiceDTOByServiceName($serviceName);
 
-        $serviceFQN = $serviceDTO->getClass();
+            $this->validateServiceCall($serviceDTO, $isPublic);
 
-        $service = is_subclass_of($serviceFQN, Singleton::class)
-            ? $serviceFQN::getInstance()
-            : $this->createServiceInstance($serviceDTO, $inner);
+            $serviceFQN = $serviceDTO->getClass();
 
-        if ($decorators = $serviceDTO->getDecorators()) {
-            foreach ($decorators as $decorator) {
-                $inner = $service;
-                $service = $this->doGetService($decorator, $inner, false);
+            $service = is_subclass_of($serviceFQN, Singleton::class)
+                ? $serviceFQN::getInstance()
+                : $this->createServiceInstance($serviceDTO, $inner);
+
+            foreach ($serviceDTO->getDecorators() as $decorator) {
+                $service = $this->doGetService($decorator, $service, false);
             }
+        } finally {
+            $this->removeDependencyChainLink();
         }
-
-        $this->removeDependencyChainLink();
 
         return $service;
     }
@@ -196,22 +210,24 @@ class Container extends Singleton implements IContainer {
 
         $firstOuterTrace = array_find(
             debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS),
-            static fn(array $trace): bool => !in_array((string)($trace['file'] ?? ''), $filesToSkip, true)
+            static fn(array $trace): bool => !in_array($trace['file'] ?? '', $filesToSkip, true)
+        ) ?? [];
+
+        $class = $firstOuterTrace['class'] ?? '';
+        $function = $firstOuterTrace['function'] ?? '';
+
+        // Every service gets a link (even without an outer call), so removeDependencyChainLink() removes its own one.
+        static::$dependencyChain[] = new DependencyChainLinkDTO(
+            serviceName: $serviceName,
+            fileName: $firstOuterTrace['file'] ?? '',
+            line: $firstOuterTrace['line'] ?? 0,
+            method: $class . ($class ? "::" : "") . $function,
         );
-
-        if ($firstOuterTrace) {
-            $class = (string)($firstOuterTrace['class'] ?? '');
-            $function = (string)($firstOuterTrace['function'] ?? '');
-
-            static::$dependencyChain[] = new DependencyChainLinkDTO(
-                serviceName: $serviceName,
-                fileName: (string)($firstOuterTrace['file'] ?? ''),
-                line: (int)($firstOuterTrace['line'] ?? 0),
-                method: $class . ($class ? "::" : "") . $function,
-            );
-        }
     }
 
+    /**
+     * @return string[]
+     */
     protected function getFilePathsToSkipInDependencyChain(): array {
         return [
             __FILE__
@@ -241,24 +257,26 @@ class Container extends Singleton implements IContainer {
     protected function createServiceInstance(ServiceDTO $serviceDTO, mixed $inner): mixed {
         $serviceFQN = $serviceDTO->getClass();
 
-        try {
-            $classReflection = new ReflectionClass($serviceFQN);
-        } catch (ReflectionException) {
+        if (!class_exists($serviceFQN)) {
             throw new ClassNotFoundException($serviceFQN, $serviceDTO);
         }
 
+        $classReflection = new ReflectionClass($serviceFQN);
+
         $parameters = [];
 
-        /** @var ReflectionParameter $parameter */
-        foreach ((array)$classReflection->getConstructor()?->getParameters() as $parameter) {
-            $paramType = $parameter->getType()?->getName();
+        foreach ($classReflection->getConstructor()?->getParameters() ?? [] as $parameter) {
+            $type = $parameter->getType();
             $paramName = $parameter->getName();
 
-            if (!$paramType) {
-                throw new ServiceUntypedParameterInConstructor($serviceDTO, $parameter->getName());
+            if ($type === null) {
+                throw new ServiceUntypedParameterInConstructor($serviceDTO, $paramName);
             }
 
-            if ($paramType === $serviceDTO->getAncestorService()) {
+            // A union type ("A|B") cannot be a service.
+            $paramType = ($type instanceof ReflectionNamedType) ? $type->getName() : '';
+
+            if ($paramType !== '' && $paramType === $serviceDTO->getAncestorService()) {
                 $parameters[$paramName] = $inner;
             } elseif ($serviceDTO->isArgumentDefined($paramName)) {
                 $parameters[$paramName] = $this->getArgumentValue(
@@ -270,33 +288,11 @@ class Container extends Singleton implements IContainer {
             } elseif ($parameter->allowsNull()) {
                 $parameters[$paramName] = null;
             } else {
-                try {
-                    $parameters[$paramName] = $this->getService(
-                        $paramType
-                    );
-                } catch (ServiceNotFoundException $e) {
-                    try {
-                        if ($defaultValue = $parameter->getDefaultValue()) {
-                            $parameters[$paramName] = $defaultValue;
-                        }
-                    } catch (ReflectionException) {
-                    }
-
-                    if (
-                        !array_key_exists($paramName, $parameters)
-                        && $parameter->allowsNull()
-                    ) {
-                        $parameters[$paramName] = null;
-                    }
-
-                    if (!array_key_exists($paramName, $parameters)) {
-                        throw $e;
-                    }
-                }
+                $parameters[$paramName] = $this->getService($paramType);
             }
         }
 
-        return new $serviceFQN(...$parameters);
+        return $classReflection->newInstanceArgs($parameters);
     }
 
     protected function getArgumentValue(mixed $rawArgumentValue, mixed $inner): mixed {

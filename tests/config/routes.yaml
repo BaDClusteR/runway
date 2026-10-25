@@ -1,0 +1,63 @@
+# The routes of the integration and E2E tests (see Fixture\Controller\FixtureController).
+
+routes:
+  fixture_hello:
+    path: /hello
+    controller: Runway\Tests\Fixture\Controller\FixtureController::hello
+    methods: [GET]
+
+  fixture_item:
+    path: /items/{id<\d+>}
+    controller: Runway\Tests\Fixture\Controller\FixtureController::item
+    methods: [GET, DELETE]
+
+  fixture_item_update:
+    path: /items/{id<\d+>}
+    controller: Runway\Tests\Fixture\Controller\FixtureController::item
+    methods: PATCH
+
+  fixture_search:
+    path: /items/search
+    controller: Runway\Tests\Fixture\Controller\FixtureController::search
+    methods: [GET]
+
+  fixture_echo:
+    path: /echo
+    controller: Runway\Tests\Fixture\Controller\FixtureController::echo
+
+  fixture_cookie:
+    path: /cookie
+    controller: Runway\Tests\Fixture\Controller\FixtureController::cookie
+
+  fixture_stream:
+    path: /stream
+    controller: Runway\Tests\Fixture\Controller\FixtureController::stream
+
+  fixture_exception:
+    path: /exception
+    controller: Runway\Tests\Fixture\Controller\FixtureController::exception
+
+  fixture_not_response:
+    path: /not-response
+    controller: Runway\Tests\Fixture\Controller\FixtureController::notResponse
+
+  fixture_class_controller:
+    path: /plain
+    controller: Runway\Tests\Fixture\Controller\PlainController::index
+
+  fixture_missing_controller:
+    path: /missing-controller
+    controller: Runway\Tests\Fixture\Controller\DoesNotExist::index
+
+  fixture_missing_method:
+    path: /missing-method
+    controller: Runway\Tests\Fixture\Controller\FixtureController::doesNotExist
+
+  fixture_protected_method:
+    path: /protected-method
+    controller: Runway\Tests\Fixture\Controller\FixtureController::secret
+
+  fixture_files:
+    path: /files/{path<.+>}
+    controller: Runway\Tests\Fixture\Controller\FixtureController::file
+    methods: [GET]

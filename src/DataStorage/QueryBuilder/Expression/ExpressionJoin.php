@@ -10,6 +10,18 @@ use Runway\DataStorage\QueryBuilder\Enum\ExpressionJoinConditionTypeEnum;
 use Runway\DataStorage\QueryBuilder\Enum\ExpressionJoinTypeEnum;
 use Runway\Singleton\Container;
 
+/**
+ * The parts: the join type, the table, the alias, the condition type, the condition, "INDEX BY".
+ *
+ * @extends AExpressionComposite<array{
+ *     0: ExpressionJoinTypeEnum,
+ *     1: string,
+ *     2: string,
+ *     3: ExpressionJoinConditionTypeEnum,
+ *     4: string|ExpressionComparison|ExpressionFunc,
+ *     5: string,
+ * }>
+ */
 class ExpressionJoin extends AExpressionComposite {
     protected IJoinTypeConverter $joinTypeConverter;
 
@@ -20,18 +32,6 @@ class ExpressionJoin extends AExpressionComposite {
     protected string $prefix = "";
 
     protected string $postfix = "";
-
-    /**
-     * @var array{
-     *     0: ExpressionJoinTypeEnum,
-     *     1: string,
-     *     2: string,
-     *     3: ExpressionJoinConditionTypeEnum,
-     *     4: string|ExpressionComparison|ExpressionFunc,
-     *     5: string,
-     * }[]
-     */
-    protected array $parts;
 
     public function __construct() {
         $this->joinTypeConverter = Container::getInstance()->getService(IJoinTypeConverter::class);
@@ -58,17 +58,7 @@ class ExpressionJoin extends AExpressionComposite {
         );
     }
 
-    /**
-     * @param array{
-     *      0: ExpressionJoinTypeEnum,
-     *      1: string,
-     *      2: string,
-     *      3: ExpressionJoinConditionTypeEnum,
-     *      4: string|ExpressionComparison|ExpressionFunc,
-     *      5: string,
-     *  } $part
-     */
-    public function convertPart($part): string {
+    protected function convertPart(mixed $part): string {
         $joinTypeString = $this->joinTypeConverter->toString($part[0]);
 
         $result = "{$joinTypeString} JOIN `{{$part[1]}}`";
@@ -79,7 +69,7 @@ class ExpressionJoin extends AExpressionComposite {
         }
 
         // Condition
-        if ($part[4]) {
+        if ($part[4] !== '') {
             $joinConditionTypeString = $this->joinConditionTypeConverter->toString($part[3]);
 
             $result .= " {$joinConditionTypeString} ({$part[4]})";

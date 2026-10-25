@@ -58,8 +58,11 @@ class YamlConfigParser implements IConfigParser {
         return $this->helper->mergeParsedConfigs(...$configs);
     }
 
+    /**
+     * @return ParsedConfigDTO[] The YAML files of the directory and its subdirectories.
+     */
     protected function parseDirectory(string $directory): array {
-        $files = scandir($directory);
+        $files = is_dir($directory) ? scandir($directory) : false;
         $configs = [];
 
         if (is_array($files)) {

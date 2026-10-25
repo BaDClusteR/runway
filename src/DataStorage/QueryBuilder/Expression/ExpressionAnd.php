@@ -14,6 +14,8 @@ class ExpressionAnd extends AExpressionBoolean {
         AExpressionBoolean::class,
         ExpressionComparison::class,
         ExpressionFunc::class,
+        ExpressionIsNotNull::class,
+        ExpressionIsNull::class,
         ExpressionMath::class,
     ];
 
@@ -22,7 +24,7 @@ class ExpressionAnd extends AExpressionBoolean {
     /**
      * @throws ExpressionTypeIsNotAllowed
      */
-    public function add($part): static {
+    public function add(mixed $part): static {
         $this->validateExpressionPart($part);
 
         return $this->addPart($part);

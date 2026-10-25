@@ -10,12 +10,14 @@ use Runway\Model\DTO\DataStoragePropertyDTO;
 use Runway\Model\DTO\DataStorageReferenceDTO;
 use Runway\Model\Exception\ModelException;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionProperty;
 
 class DataStoragePropertiesProvider implements IDataStoragePropertiesProvider {
     protected string $modelFQN = '';
 
+    /**
+     * @var ReflectionClass<object>
+     */
     protected ReflectionClass $reflection;
 
     public function __construct(
@@ -72,19 +74,14 @@ class DataStoragePropertiesProvider implements IDataStoragePropertiesProvider {
     /**
      * @throws ModelException
      */
-    protected function defineReflection($modelFQN): void {
+    protected function defineReflection(string $modelFQN): void {
         if ($modelFQN !== $this->modelFQN) {
-            $this->modelFQN = $modelFQN;
-
-            try {
-                $this->reflection = new ReflectionClass($this->modelFQN);
-            } catch (ReflectionException $e) {
-                throw new ModelException(
-                    $e->getMessage(),
-                    $e->getCode(),
-                    $e
-                );
+            if (!class_exists($modelFQN)) {
+                throw new ModelException("Class \"$modelFQN\" does not exist");
             }
+
+            $this->reflection = new ReflectionClass($modelFQN);
+            $this->modelFQN = $modelFQN;
         }
     }
 }

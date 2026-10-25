@@ -9,6 +9,7 @@ use Runway\DataStorage\QueryBuilder\Exception\QueryBuilderException;
 use Runway\DataStorage\QueryBuilder\Expression\AExpressionBoolean;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionComparison;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionFunc;
+use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNotNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionIsNull;
 use Runway\DataStorage\QueryBuilder\Expression\ExpressionMath;
 use Runway\DataStorage\QueryBuilder\ExpressionBuilder\IExpressionBuilder;
@@ -20,7 +21,10 @@ interface IQueryBuilder {
 
     public function getSQL(): string;
 
-    public function select(...$args): static;
+    /**
+     * @param string|\Stringable ...$args The columns, "*" if none.
+     */
+    public function select(string|\Stringable ...$args): static;
 
     public function from(string $tableNameOrEntityFQN, string $alias = '', string $indexBy = ''): static;
 
@@ -68,19 +72,19 @@ interface IQueryBuilder {
 
     public function clearJoin(): static;
 
-    public function where(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
+    public function where(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static;
 
-    public function andWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
+    public function andWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static;
 
-    public function orWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
+    public function orWhere(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static;
 
     public function clearWhere(): static;
 
-    public function having(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
+    public function having(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static;
 
-    public function andHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
+    public function andHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static;
 
-    public function orHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|string $condition): static;
+    public function orHaving(ExpressionComparison|AExpressionBoolean|ExpressionIsNull|ExpressionIsNotNull|string $condition): static;
 
     public function clearHaving(): static;
 
@@ -102,12 +106,36 @@ interface IQueryBuilder {
 
     public function insert(): static;
 
-    public function into(string $tableName): static;
+    /**
+     * @param string[]|null $columns The columns of the rows (see values()), the current ones if null.
+     */
+    public function into(string $tableName, ?array $columns = null): static;
 
+    /**
+     * @param string[] $columns
+     */
+    public function columns(array $columns): static;
+
+    public function addColumn(string $name): static;
+
+    /**
+     * @param string[] $columns
+     */
+    public function addColumns(array $columns): static;
+
+    /**
+     * @param array<array<string|int|float>> $values The rows of INSERT: SQL, e.g. the query variables [":name", ":age"].
+     */
     public function values(array $values): static;
 
+    /**
+     * @param array<string|int|float> $value A row.
+     */
     public function addValue(array $value): static;
 
+    /**
+     * @param array<array<string|int|float>> $values The rows.
+     */
     public function addValues(array $values): static;
 
     public function clearValues(): static;
@@ -124,11 +152,16 @@ interface IQueryBuilder {
 
     public function setVariable(string $name, mixed $value): static;
 
+    /**
+     * @param array<string, mixed> $values Name => value.
+     */
     public function setVariables(array $values): static;
 
     public function clearVariables(): static;
 
     /**
+     * @return array<array<string, mixed>>
+     *
      * @throws DBException
      * @throws QueryBuilderException
      */
@@ -143,6 +176,8 @@ interface IQueryBuilder {
     public function getEntities(): array;
 
     /**
+     * @return iterable<AEntity>
+     *
      * @throws ModelException
      * @throws DBException
      * @throws QueryBuilderException
@@ -157,6 +192,8 @@ interface IQueryBuilder {
     public function getFirstEntity(): ?AEntity;
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws DBException
      * @throws QueryBuilderException
      */
@@ -169,6 +206,8 @@ interface IQueryBuilder {
     public function getFirstScalarResult(): mixed;
 
     /**
+     * @return iterable<array<string, mixed>>
+     *
      * @throws DBException
      * @throws QueryBuilderException
      */
@@ -191,7 +230,7 @@ interface IQueryBuilder {
     public function expr(): IExpressionBuilder;
 
     /**
-     * @param class-string<AEntity>|'' $entityFQN
+     * @param string $entityFQN An AEntity subclass, '' for none.
      *
      * @throws QueryBuilderException
      */

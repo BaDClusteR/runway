@@ -3,11 +3,11 @@
 namespace Runway\Dumper;
 
 interface IDumper {
-    public function dump($var, ...$vars): void;
+    public function dump(mixed $var, mixed ...$vars): void;
 
-    public function print($var, ...$vars): void;
+    public function print(mixed $var, mixed ...$vars): void;
 
-    public function json($var, ...$vars): void;
+    public function json(mixed $var, mixed ...$vars): void;
 
-    public function export($var, ...$vars): void;
+    public function export(mixed $var, mixed ...$vars): void;
 }

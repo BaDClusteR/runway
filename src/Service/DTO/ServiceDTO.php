@@ -38,7 +38,7 @@ class ServiceDTO {
     }
 
     public function addDecorator(string $decoratorFQN): static {
-        if (!array_key_exists($decoratorFQN, $this->decorators)) {
+        if (!in_array($decoratorFQN, $this->decorators, true)) {
             $this->decorators[] = $decoratorFQN;
         }
 
@@ -59,14 +59,14 @@ class ServiceDTO {
         return $this->arguments;
     }
 
-    public function isArgumentDefined($argumentName): bool {
+    public function isArgumentDefined(string $argumentName): bool {
         return array_any(
             $this->arguments,
             static fn($argument) => ($argument->getName() === $argumentName)
         );
     }
 
-    public function getArgumentValue($argumentName): mixed {
+    public function getArgumentValue(string $argumentName): mixed {
         foreach ($this->arguments as $argument) {
             if ($argument->getName() === $argumentName) {
                 return $argument->getValue();
@@ -86,10 +86,16 @@ class ServiceDTO {
         return $this;
     }
 
+    /**
+     * @return EventDTO[]
+     */
     public function getEvents(): array {
         return $this->events;
     }
 
+    /**
+     * @return TagDTO[]
+     */
     public function getTags(): array {
         return $this->tags;
     }

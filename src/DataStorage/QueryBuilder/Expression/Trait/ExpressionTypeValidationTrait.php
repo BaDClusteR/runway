@@ -7,34 +7,30 @@ use Runway\DataStorage\QueryBuilder\Expression\IExpression;
 
 trait ExpressionTypeValidationTrait {
     /**
+     * A part can be SQL (a string) or an expression of the allowed classes (static::$allowedPartExpressionClasses).
+     *
      * @throws ExpressionTypeIsNotAllowed
      */
-    protected function validateExpressionPart($part): void {
-        if ($part instanceof IExpression) {
-            $validated = false;
-
-            foreach (static::$allowedPartExpressionClasses as $fqn) {
-                if ($part instanceof $fqn) {
-                    $validated = true;
-                    break;
-                }
-            }
-
-            if (!$validated) {
-                throw new ExpressionTypeIsNotAllowed(get_class($part));
-            }
+    protected function validateExpressionPart(mixed $part): void {
+        if (
+            $part instanceof IExpression
+            && !array_any(
+                static::$allowedPartExpressionClasses,
+                static fn(string $fqn): bool => $part instanceof $fqn
+            )
+        ) {
+            throw new ExpressionTypeIsNotAllowed(get_class($part));
         }
     }
 
     /**
+     * @param array<mixed> $parts
+     *
      * @throws ExpressionTypeIsNotAllowed
      */
-    protected function validateExpressionParts($parts): void {
-        array_walk(
-            $parts,
-            function ($part) {
-                $this->validateExpressionPart($part);
-            }
-        );
+    protected function validateExpressionParts(array $parts): void {
+        foreach ($parts as $part) {
+            $this->validateExpressionPart($part);
+        }
     }
 }

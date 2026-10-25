@@ -55,7 +55,8 @@ class Router implements IRouter {
             throw new RouteControllerNotFound($route);
         }
 
-        if (!method_exists($controller, $route->method)) {
+        // A public method only: a protected or a private one would be an Error, not a clear configuration error.
+        if (!is_callable([$controller, $route->method])) {
             throw new RouteMethodNotFound($route);
         }
 

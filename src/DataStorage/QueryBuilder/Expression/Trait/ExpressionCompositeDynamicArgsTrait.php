@@ -8,7 +8,7 @@ trait ExpressionCompositeDynamicArgsTrait {
     /**
      * @throws ExpressionTypeIsNotAllowed
      */
-    public function __construct(...$args) {
+    public function __construct(mixed ...$args) {
         $this->validateExpressionParts($args);
 
         $this->parts = $args;
