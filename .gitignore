@@ -33,3 +33,9 @@ hist/
 log/
 vendor/
 .phpunit.result.cache
+
+# A library: the dependencies are resolved by the project
+composer.lock
+
+# The caches of PHPUnit, PHPStan and Infection
+var/

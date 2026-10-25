@@ -1,0 +1,25 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": ["src"]
+    },
+    // The unit tests: the integration and E2E tests use the real configs, the database and the HTTP server (slower).
+    "testFramework": "phpunit",
+    // Composer may print deprecation notices instead of its bin-dir, so the path is explicit.
+    "phpUnit": {
+        "customPath": "vendor/bin/phpunit"
+    },
+    "testFrameworkOptions": "--testsuite=unit",
+    "tmpDir": "var/infection",
+    "logs": {
+        "text": "var/infection/infection.log",
+        "summary": "var/infection/summary.log"
+    },
+    "minMsi": 90,
+    "minCoveredMsi": 90,
+    "mutators": {
+        "@default": true,
+        // The methods are protected on purpose: they are the extension points for the subclasses.
+        "ProtectedVisibility": false
+    }
+}

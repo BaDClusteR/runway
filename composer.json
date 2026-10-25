@@ -19,6 +19,9 @@
         "ramsey/uuid": "^4.7"
     },
     "require-dev": {
+        "ext-pdo_sqlite": "*",
+        "infection/infection": "^0.35",
+        "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4",
         "roave/security-advisories": "dev-latest"
     },
@@ -29,7 +32,18 @@
     "autoload-dev": {
         "psr-4": {"Runway\\Tests\\": "tests/"}
     },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "test:e2e": "phpunit --testsuite e2e",
+        "phpstan": "phpstan --memory-limit=1G",
+        "infection": "infection --threads=max"
+    },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
     }
 }

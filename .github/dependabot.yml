@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Updates the commits the actions are pinned to (with the version comments).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
