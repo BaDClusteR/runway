@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.1
+
+A repackaging of 2.0.0: the 2.0.0 tag was moved after its release, and Packagist keeps the first commit of it.
+Nothing in the library code has changed.
+
+- The package has no `index.php` (a front controller of the times when Runway was an application): the project has
+  its own one.
+- CHANGELOG.md: the changes of 2.0 since 1.0.3 (the breaking changes, the security fixes, added, fixed and changed).
+
 ## 2.0.0
 
 The changes since 1.0.3. The upgrade steps are in [Breaking changes](#breaking-changes).
